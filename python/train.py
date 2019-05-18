@@ -19,6 +19,8 @@ from learningai.env.mnist_env import mnist_env
 
 def main():
 
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+    # tf.logging.set_verbosity(tf.logging.DEBUG)
     np.set_printoptions(precision=6)
     tf.random.set_random_seed(10)
     np.random.seed(10)
@@ -27,11 +29,11 @@ def main():
     cnn_env = mnist_env(sess, lr=1e-4)
     dqn_agent = valueAgent(sess, cnn_env, lr=1e-3, gamma=0.9)
 
-
     sess.run(tf.global_variables_initializer())
     cnn_env.storeLocalVar()
     cnn_env.resetNetwork()
     print(cnn_env.get_validation_accuracy())
+    print(cnn_env.get_test_accuracy())
 
     print("End of Training")
 

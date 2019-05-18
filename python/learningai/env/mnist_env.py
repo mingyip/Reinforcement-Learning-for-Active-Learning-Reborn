@@ -60,6 +60,9 @@ class mnist_env(object):
         acc = self.sess.run(self.cnn.accuracy, {self.cnn.x:self.x_val, self.cnn.y_:self.y_val})
         return acc
 
+    def get_test_accuracy(self):
+        acc = self.sess.run(self.cnn.accuracy, {self.cnn.x:self.x_test, self.cnn.y_:self.y_test})
+        return acc
 
     def storeLocalVar(self):
         tf_vars = tf.trainable_variables()
