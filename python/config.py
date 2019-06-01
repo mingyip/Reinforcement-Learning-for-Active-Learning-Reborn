@@ -12,6 +12,7 @@ class Config:
     SELECTION_BATCHSIZE = 50
     TRAINING_BATCHSIZE = 10
 
+    # HYPER-PARAMETER TUNNING 
 
     # loggerManger
     LOG_TOP_FOLDER = "result"

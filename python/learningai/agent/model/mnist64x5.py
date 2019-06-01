@@ -10,13 +10,12 @@ class mnist64x5_model(object):
             # Placeholder Input
             s = tf.placeholder(tf.float32, [None, n_class])
             b = tf.placeholder(tf.float32, [None, 1])
-            t = tf.placeholder(tf.float32, [None, 1])
+            e = tf.placeholder(tf.float32, [None, 1])
             R = tf.placeholder(tf.float32, [None, 1])
-            acc = tf.placeholder(tf.float32, [None, 1])
             avg_V_ = tf.placeholder(tf.float32, [None, 1])
 
              # Network
-            concat = tf.concat([s, b, t, acc], 1)
+            concat = tf.concat([s, b, e], 1)
             fc1 = tf.layers.dense(concat, 64, tf.nn.relu)
             fc2 = tf.layers.dense(fc1, 32, tf.nn.relu)
             fc3 = tf.layers.dense(fc2, 16, tf.nn.relu)
@@ -27,17 +26,18 @@ class mnist64x5_model(object):
             # Optimizer
             td_error = R + gamma * avg_V_ - avg_V
             loss = tf.square(td_error)
-            train_op = tf.train.AdamOptimizer(lr).minimize(loss)
+            optimizer = tf.train.AdamOptimizer(lr)
+            train_op = optimizer.minimize(loss)
 
             # Variables
             self.s = s
             self.b = b
-            self.t = t
+            self.e = e
             self.R = R
             self.V = V
-            self.acc = acc
             self.loss = loss
             self.avg_V = avg_V
             self.avg_V_ = avg_V_
             self.td_error = td_error
             self.train_op = train_op
+            self.optimizer = optimizer
