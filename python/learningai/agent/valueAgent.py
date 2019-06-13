@@ -80,8 +80,8 @@ class valueAgent(object):
 
                 self.train_agent(reward, S_new[tops_new], avg_V)
                 # print("episode:", episode, "  iteration:", iteration, "reward: ", reward, "exporation_rate:", exporation_rate)
-                if iteration == int(budget/train_size)-1:
-                    
+                # if iteration == int(budget/train_size)-1:
+
 
             if exporation_rate > 0:
                 exporation_rate -= exporation_decay_rate
