@@ -19,6 +19,7 @@ from learningai.env.mnist_env import mnist_env
 
 def main():
 
+    start = time.time()
     # tf.logging.set_verbosity(tf.logging.DEBUG)
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     np.set_printoptions(precision=6)
@@ -37,6 +38,10 @@ def main():
 
     dqn_agent.train()
     print("End of Training")
+
+    done = time.time()
+    elapsed = done - start
+    print(elapsed)
 
 if __name__ == '__main__':
     main()

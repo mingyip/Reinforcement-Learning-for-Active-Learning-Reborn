@@ -6,20 +6,24 @@ from learningai.agent.model.mnist64x5 import mnist64x5_model
 from config import Config
 
 class valueAgent(object):
-    def __init__(self, sess, env, lr=1e-3, gamma=0.9):
+    def __init__(self, sess, env, lr=1e-3, gamma=0.9, num_class=10):
 
         print("Create a State Value Estimation agent!")
+        self.num_class = num_class
         self.sess = sess
         self.env = env
         # super(valueAgent, self).__init__(n_class=self.env.nclass, lr=lr, gamma=gamma, scopeName="dqn_mnist64x5")
         self.dqn_init = mnist64x5_model(self.env.nclass, gamma=gamma, scopeName="dqn_init")
         self.dqn = mnist64x5_model(self.env.nclass, gamma=gamma, scopeName="dqn_train")
+        self.memory = []
 
     def train(self):
         """ Reinforcement Learning Algorithm """
         # TODO: Fix the second remain_budget and remain_episodes bug.
         # TODO: avg should move the gpu to calulate
+        # TODO: What about the terminal state. I dont get the K+1 state. How do I store the S, S_new pair.
 
+        # Set Constant
         budget                  = Config.CLASSIFICATION_BUDGET
         episodes                = Config.AGENT_TRAINING_EPISODES
         epochs                  = Config.CLASSIFICATION_EPOCH
@@ -27,25 +31,37 @@ class valueAgent(object):
         train_size              = Config.TRAINING_BATCHSIZE
         exporation_rate         = 1.0
         exporation_decay_rate   = 0.005
+        validation_images       = 1500
+
+        # Set array and variable
+        S                       = np.zeros((selection_size, self.num_class+2))
+        S_new                   = np.zeros((selection_size, self.num_class+2))
+        last_remain_budget      = None
+        last_remain_episodes    = None
+        last_status             = np.zeros((selection_size, self.num_class+2))
 
         for episode in range(episodes):
             self.begin_episode()
-            reward = self.get_last_env_reward(nImages=1000)
+            reward  = self.get_last_env_reward(nImages=validation_images)
 
             for iteration in range(int(budget/train_size)):
                 ntrained        = iteration * train_size
                 remain_budget   = (budget - ntrained) / budget
-                remain_episodes = (episodes - episode) / episodes                
+                remain_new_bgt  = max(budget-ntrained-1, 0) / budget
+                remain_episodes = (episodes - episode) / episodes
 
                 if (np.random.rand(1)[0]>exporation_rate):
                     # Predict Rewards of different actions
                     [x_select, y_select] = self.env.get_next_selection_batch()
-                    S = self.get_next_state_from_env(x_select)
+                    S[:, 0:-2] = self.get_next_state_from_env(x_select)
+                    S[:, -2] = remain_budget
+                    S[:, -1] = remain_episodes
 
                     # Select the best k-th images
-                    predicts, tops, _ = self.predict(S, remain_budget, remain_episodes)
+                    predicts, tops, _ = self.predict(S)
                     batch_x = x_select[tops]
                     batch_y = y_select[tops]
+
                 else:
                     [batch_x, batch_y] = self.env.get_next_train_batch()
 
@@ -54,13 +70,18 @@ class valueAgent(object):
 
                 # Train DQN Network
                 [x_new_select, y_new_select] = self.env.get_next_selection_batch(peek=True)
-                S_new = self.get_next_state_from_env(x_new_select)
-                predicts_new, tops_new, _ = self.predict(S_new, remain_budget, remain_episodes)
-                avg_V = np.mean(predicts_new[tops_new])
-                reward = self.get_last_env_reward(nImages=1000)
+                S_new[:, 0:-2] = self.get_next_state_from_env(x_new_select)
+                S_new[:, -2] = remain_new_bgt
+                S_new[:, -1] = remain_episodes
 
-                self.train_agent(reward, S_new[tops_new], remain_budget, remain_episodes, avg_V)
-                print("episode:", episode, "  iteration:", iteration, "reward: ", reward, "exporation_rate:", exporation_rate)
+                predicts_new, tops_new, _ = self.predict(S_new)
+                avg_V = np.mean(predicts_new[tops_new])
+                reward = self.get_last_env_reward(nImages=validation_images)
+
+                self.train_agent(reward, S_new[tops_new], avg_V)
+                # print("episode:", episode, "  iteration:", iteration, "reward: ", reward, "exporation_rate:", exporation_rate)
+                if iteration == int(budget/train_size)-1:
+                    
 
             if exporation_rate > 0:
                 exporation_rate -= exporation_decay_rate
@@ -84,13 +105,11 @@ class valueAgent(object):
         """ Get last validation reward from the environment """
         return self.env.get_validation_accuracy(nImages)
 
-    def train_agent(self, reward, state, remainBudget, remainEpisode, V_new):
+    def train_agent(self, reward, state, V_new):
         """ Train agent with the TD-error """
         R  = np.full((Config.TRAINING_BATCHSIZE, 1), reward)
-        B  = np.full((Config.TRAINING_BATCHSIZE, 1), remainBudget)
-        E  = np.full((Config.TRAINING_BATCHSIZE, 1), remainEpisode)
         V_ = np.full((Config.TRAINING_BATCHSIZE, 1), V_new)
-        feed_dict = {self.dqn.R:R, self.dqn.b:B, self.dqn.e:E, self.dqn.s:state, self.dqn.avg_V_:V_}
+        feed_dict = {self.dqn.R:R, self.dqn.s:state, self.dqn.avg_V_:V_}
 
         self.sess.run(self.dqn.train_op, feed_dict)
 
@@ -98,14 +117,14 @@ class valueAgent(object):
         """ Train classification network with dataset """
         self.env.train_env(x_train, y_train, epoch)
 
-    def predict(self, state, remainBudget, remainEpisode):
+    def predict(self, state):
         """ Agent predicts the state-action value (accuracy) """
         # TODO: function predict write log directly to the result.log
         # TODO: Move the calculation steps to GPU
 
-        budget = np.full((Config.SELECTION_BATCHSIZE, 1), remainBudget, dtype=float)
-        episode = np.full((Config.SELECTION_BATCHSIZE, 1), remainEpisode, dtype=float)
-        feed_dict = {self.dqn.s: state, self.dqn.b: budget, self.dqn.e: episode}
+        # budget = np.full((Config.SELECTION_BATCHSIZE, 1), remainBudget, dtype=float)
+        # episode = np.full((Config.SELECTION_BATCHSIZE, 1), remainEpisode, dtype=float)
+        feed_dict = {self.dqn.s: state}
         predict = (self.sess.run(self.dqn.V, feed_dict)).squeeze()
 
         ranked = np.argsort(predict)
@@ -114,10 +133,10 @@ class valueAgent(object):
 
         return predict, top_idx, low_idx
 
-    def evaluate(self, isStream):
+    def evaluate(self, isStream=True):
         """ Agent uses the current policy to train a new network """
         """ Both stream and pool based learning """
-        pass
+        
 
     def storeNetworkVar(self):
         """ Store network variables so that later we can re-init the network """
