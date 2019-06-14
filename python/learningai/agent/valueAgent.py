@@ -22,7 +22,7 @@ class valueAgent(object):
         # TODO: Fix the second remain_budget and remain_episodes bug.
         # TODO: avg should move the gpu to calulate
         # TODO: What about the terminal state. I dont get the K+1 state. How do I store the S, S_new pair.
-
+ 
         # Set Constant
         budget                  = Config.CLASSIFICATION_BUDGET
         episodes                = Config.AGENT_TRAINING_EPISODES
@@ -80,8 +80,9 @@ class valueAgent(object):
 
                 self.train_agent(reward, S_new[tops_new], avg_V)
                 # print("episode:", episode, "  iteration:", iteration, "reward: ", reward, "exporation_rate:", exporation_rate)
-                # if iteration == int(budget/train_size)-1:
 
+            reward = self.evaluate(isStream=True)
+            print("Episode: ", episode, " Reward: ", reward, " Exploration Rate: ", exporation_rate)
 
             if exporation_rate > 0:
                 exporation_rate -= exporation_decay_rate
@@ -94,6 +95,11 @@ class valueAgent(object):
     def begin_episode(self):
         """ Reset the agent memory and the environment """
         # TODO: reset the agent memory
+        self.env.resetNetwork()
+
+    def reset_network(self):
+        """ Reset the classification network """
+        # TODO: maybe merge with the function begin_episode
         self.env.resetNetwork()
 
     def get_next_state_from_env(self, imgs):
@@ -136,7 +142,34 @@ class valueAgent(object):
     def evaluate(self, isStream=True):
         """ Agent uses the current policy to train a new network """
         """ Both stream and pool based learning """
-        
+        budget          = Config.CLASSIFICATION_BUDGET
+        episodes        = Config.AGENT_TRAINING_EPISODES
+        epochs          = Config.CLASSIFICATION_EPOCH
+        selection_size  = Config.SELECTION_BATCHSIZE
+        train_size      = Config.TRAINING_BATCHSIZE
+        iterations      = int(budget/train_size)
+        S               = np.zeros((selection_size, self.num_class+2))
+        remain_episodes = 0
+        validation_imgs = 1500
+
+        self.reset_network()
+        for iteration in range(iterations):
+
+            ntrained        = iteration * train_size
+            remain_budget   = (budget - ntrained) / budget
+
+            [x_select, y_select] = self.env.get_next_selection_batch()
+            S[:, 0:-2] = self.get_next_state_from_env(x_select)
+            S[:, -2] = remain_budget
+            S[:, -1] = remain_episodes
+
+            predicts, tops, _ = self.predict(S)
+            batch_x = x_select[tops]
+            batch_y = y_select[tops]
+
+            self.train_env(batch_x, batch_y, epochs)
+
+        return self.get_last_env_reward(validation_imgs)
 
     def storeNetworkVar(self):
         """ Store network variables so that later we can re-init the network """
