@@ -30,7 +30,7 @@ class valueAgent(object):
         selection_size          = Config.SELECTION_BATCHSIZE
         train_size              = Config.TRAINING_BATCHSIZE
         exporation_rate         = 1.0
-        exporation_decay_rate   = 0.005
+        exporation_decay_rate   = Config.EXPLORATION_DECAY_RATE
         validation_images       = 1500
 
         # Set array and variable
@@ -42,7 +42,7 @@ class valueAgent(object):
 
         for episode in range(episodes):
             self.begin_episode()
-            reward  = self.get_last_env_reward(nImages=validation_images)
+            reward  = self.get_validation_accuracy(nImages=validation_images)
 
             for iteration in range(int(budget/train_size)):
                 ntrained        = iteration * train_size
@@ -76,13 +76,15 @@ class valueAgent(object):
 
                 predicts_new, tops_new, _ = self.predict(S_new)
                 avg_V = np.mean(predicts_new[tops_new])
-                reward = self.get_last_env_reward(nImages=validation_images)
+                reward = self.get_validation_accuracy(nImages=validation_images)
 
                 self.train_agent(reward, S_new[tops_new], avg_V)
                 # print("episode:", episode, "  iteration:", iteration, "reward: ", reward, "exporation_rate:", exporation_rate)
 
-            reward = self.evaluate(isStream=True)
-            print("Episode: ", episode, " Reward: ", reward, " Exploration Rate: ", exporation_rate)
+            [reward, dist] = self.evaluate(isStream=True)
+            # print("Eps:", episode, " R:", reward, " ExpRate:", exporation_rate)
+            print(str.format('Eps:{0} R:{1:.2f} ExpRt:{2:.2f} ', episode, reward, exporation_rate), end='')
+            print(str.format('dist:{0:3.0f} {1:3.0f} {2:3.0f} {3:3.0f} {4:3.0f} {5:3.0f} {6:3.0f} {7:3.0f} {8:3.0f} {9:3.0f}', dist[0], dist[1], dist[2], dist[3], dist[4], dist[5], dist[6], dist[7], dist[8], dist[9]))
 
             if exporation_rate > 0:
                 exporation_rate -= exporation_decay_rate
@@ -107,9 +109,13 @@ class valueAgent(object):
         state = self.env.get_output_probability(imgs)
         return state
 
-    def get_last_env_reward(self, nImages=-1):
-        """ Get last validation reward from the environment """
+    def get_validation_accuracy(self, nImages=-1):
+        """ Get validation reward from the environment """
         return self.env.get_validation_accuracy(nImages)
+    
+    def get_test_accuracy(self, nImages=-1):
+        """ Get test reward from the environment """
+        return self.env.get_test_accuracy(nImages)
 
     def train_agent(self, reward, state, V_new):
         """ Train agent with the TD-error """
@@ -151,6 +157,7 @@ class valueAgent(object):
         S               = np.zeros((selection_size, self.num_class+2))
         remain_episodes = 0
         validation_imgs = 1500
+        distribution    = np.zeros((10))
 
         self.reset_network()
         for iteration in range(iterations):
@@ -166,10 +173,11 @@ class valueAgent(object):
             predicts, tops, _ = self.predict(S)
             batch_x = x_select[tops]
             batch_y = y_select[tops]
+            distribution = distribution + np.sum(batch_y, axis=0)
 
             self.train_env(batch_x, batch_y, epochs)
 
-        return self.get_last_env_reward(validation_imgs)
+        return [self.get_test_accuracy(validation_imgs), distribution]
 
     def storeNetworkVar(self):
         """ Store network variables so that later we can re-init the network """
