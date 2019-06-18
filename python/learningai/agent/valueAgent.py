@@ -42,7 +42,7 @@ class valueAgent(object):
 
         for episode in range(episodes):
             self.begin_episode()
-            reward  = self.get_validation_accuracy(nImages=validation_images)
+            reward = self.get_validation_accuracy(nImages=validation_images)
 
             for iteration in range(int(budget/train_size)):
                 ntrained        = iteration * train_size
@@ -63,7 +63,12 @@ class valueAgent(object):
                     batch_y = y_select[tops]
 
                 else:
-                    [batch_x, batch_y] = self.env.get_next_train_batch()
+                    [x_select, y_select] = self.env.get_next_selection_batch()
+                    S[:, 0:-2] = self.get_next_state_from_env(x_select)
+                    S[:, -2] = remain_budget
+                    S[:, -1] = remain_episodes
+
+                    [batch_x, batch_y] = S[0:train_size]
 
                 # Train Classification Network
                 self.train_env(batch_x, batch_y, epochs)
@@ -83,7 +88,7 @@ class valueAgent(object):
 
             [reward, dist] = self.evaluate(isStream=True)
             # print("Eps:", episode, " R:", reward, " ExpRate:", exporation_rate)
-            print(str.format('Eps:{0} R:{1:.2f} ExpRt:{2:.2f} ', episode, reward, exporation_rate), end='')
+            print(str.format('Eps:{0:3.0f} R:{1:.2f} ExpRt:{2:.2f} ', episode, reward, exporation_rate), end='')
             print(str.format('dist:{0:3.0f} {1:3.0f} {2:3.0f} {3:3.0f} {4:3.0f} {5:3.0f} {6:3.0f} {7:3.0f} {8:3.0f} {9:3.0f}', dist[0], dist[1], dist[2], dist[3], dist[4], dist[5], dist[6], dist[7], dist[8], dist[9]))
 
             if exporation_rate > 0:
@@ -140,8 +145,8 @@ class valueAgent(object):
         predict = (self.sess.run(self.dqn.V, feed_dict)).squeeze()
 
         ranked = np.argsort(predict)
-        top_idx = ranked[-Config.TRAINING_BATCHSIZE:]
-        low_idx = ranked[:-Config.TRAINING_BATCHSIZE]
+        low_idx = ranked[-Config.TRAINING_BATCHSIZE:]
+        top_idx = ranked[:-Config.TRAINING_BATCHSIZE]
 
         return predict, top_idx, low_idx
 

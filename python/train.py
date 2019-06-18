@@ -13,6 +13,7 @@ import sys
 import os
 
 
+from learningai.agent.bestVsecondAgent import bestVsecondAgent as bvsAgent
 from learningai.agent.valueAgent import valueAgent
 from learningai.env.mnist_env import mnist_env
 
@@ -29,6 +30,7 @@ def main():
     sess = tf.Session()
     cnn_env = mnist_env(sess, lr=1e-4)
     dqn_agent = valueAgent(sess, cnn_env, lr=1e-3, gamma=0.9)
+        # bvs_agent = bvsAgent(sess, cnn_env)
 
     sess.run(tf.global_variables_initializer())
     cnn_env.storeNetworkVar()
@@ -37,6 +39,7 @@ def main():
     dqn_agent.resetNetwork()
 
     dqn_agent.train()
+        # bvs_agent.train()
     print("End of Training")
 
     done = time.time()
