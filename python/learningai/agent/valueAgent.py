@@ -68,7 +68,9 @@ class valueAgent(object):
                     S[:, -2] = remain_budget
                     S[:, -1] = remain_episodes
 
-                    [batch_x, batch_y] = S[0:train_size]
+                    batch_x = x_select[0:train_size]
+                    batch_y = y_select[0:train_size]
+
 
                 # Train Classification Network
                 self.train_env(batch_x, batch_y, epochs)
@@ -146,7 +148,7 @@ class valueAgent(object):
 
         ranked = np.argsort(predict)
         low_idx = ranked[-Config.TRAINING_BATCHSIZE:]
-        top_idx = ranked[:-Config.TRAINING_BATCHSIZE]
+        top_idx = ranked[0:Config.TRAINING_BATCHSIZE]
 
         return predict, top_idx, low_idx
 
