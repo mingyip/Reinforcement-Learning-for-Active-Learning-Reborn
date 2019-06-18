@@ -88,10 +88,13 @@ class valueAgent(object):
                 self.train_agent(reward, S_new[tops_new], avg_V)
                 # print("episode:", episode, "  iteration:", iteration, "reward: ", reward, "exporation_rate:", exporation_rate)
 
-            [reward, dist] = self.evaluate(isStream=True)
+            [top_reward, top_dist] = self.evaluate(isStream=True, trainTop=True)
+            [low_reward, low_dist] = self.evaluate(isStream=True, trainTop=False)
             # print("Eps:", episode, " R:", reward, " ExpRate:", exporation_rate)
-            print(str.format('Eps:{0:3.0f} R:{1:.2f} ExpRt:{2:.2f} ', episode, reward, exporation_rate), end='')
-            print(str.format('dist:{0:3.0f} {1:3.0f} {2:3.0f} {3:3.0f} {4:3.0f} {5:3.0f} {6:3.0f} {7:3.0f} {8:3.0f} {9:3.0f}', dist[0], dist[1], dist[2], dist[3], dist[4], dist[5], dist[6], dist[7], dist[8], dist[9]))
+            print(str.format('Eps:{0:3.0f} R:{1:.2f} ExpRt:{2:.2f} ', episode, top_reward, exporation_rate), end='')
+            print(str.format('dist:{0:3.0f} {1:3.0f} {2:3.0f} {3:3.0f} {4:3.0f} {5:3.0f} {6:3.0f} {7:3.0f} {8:3.0f} {9:3.0f}', top_dist[0], top_dist[1], top_dist[2], top_dist[3], top_dist[4], top_dist[5], top_dist[6], top_dist[7], top_dist[8], top_dist[9]))
+            print(str.format('        R:{0:.2f}            ', low_reward), end='')
+            print(str.format('dist:{0:3.0f} {1:3.0f} {2:3.0f} {3:3.0f} {4:3.0f} {5:3.0f} {6:3.0f} {7:3.0f} {8:3.0f} {9:3.0f}', low_dist[0], low_dist[1], low_dist[2], low_dist[3], low_dist[4], low_dist[5], low_dist[6], low_dist[7], low_dist[8], low_dist[9]))
 
             if exporation_rate > 0:
                 exporation_rate -= exporation_decay_rate
@@ -152,7 +155,7 @@ class valueAgent(object):
 
         return predict, top_idx, low_idx
 
-    def evaluate(self, isStream=True):
+    def evaluate(self, isStream=True, trainTop=True):
         """ Agent uses the current policy to train a new network """
         """ Both stream and pool based learning """
         budget          = Config.CLASSIFICATION_BUDGET
@@ -176,10 +179,15 @@ class valueAgent(object):
             S[:, 0:-2] = self.get_next_state_from_env(x_select)
             S[:, -2] = remain_budget
             S[:, -1] = remain_episodes
+            predicts, tops, lows = self.predict(S)
+            
+            if trainTop:
+                train_idx = tops
+            else:
+                train_idx = lows
 
-            predicts, tops, _ = self.predict(S)
-            batch_x = x_select[tops]
-            batch_y = y_select[tops]
+            batch_x = x_select[train_idx]
+            batch_y = y_select[train_idx]
             distribution = distribution + np.sum(batch_y, axis=0)
 
             self.train_env(batch_x, batch_y, epochs)
