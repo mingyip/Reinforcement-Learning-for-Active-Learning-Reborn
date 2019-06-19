@@ -90,11 +90,12 @@ class mnist_env(object):
             if not peek:
                 self.train_counter = end_idx
 
-        x_batch = self.x_train[self.train_index[bgn_idx:end_idx]]
-        y_batch = self.y_train[self.train_index[bgn_idx:end_idx]]
+        idx     = self.train_index[bgn_idx:end_idx]
+        x_batch = self.x_train[idx]
+        y_batch = self.y_train[idx]
 
         # print("idx:", self.train_counter, self.train_index[bgn_idx:end_idx])
-        return [x_batch, y_batch]
+        return [x_batch, y_batch, idx]
     
     def get_next_train_batch(self, selection_batchsize=None, train_batchsize=None):
 
@@ -120,7 +121,7 @@ class mnist_env(object):
 
         x_batch = self.x_train[idx]
         y_batch = self.y_train[idx]  
-        return [x_batch, y_batch]     
+        return [x_batch, y_batch, idx]     
 
     def get_output_probability(self, x_train):
         """ 

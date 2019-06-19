@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+import copy
 
 
 from learningai.agent.model.mnist64x5 import mnist64x5_model
@@ -36,6 +37,7 @@ class valueAgent(object):
         # Set array and variable
         S                       = np.zeros((selection_size, self.num_class+2))
         S_new                   = np.zeros((selection_size, self.num_class+2))
+        S_old                   = np.zeros((selection_size, self.num_class+2))
         last_remain_budget      = None
         last_remain_episodes    = None
         last_status             = np.zeros((selection_size, self.num_class+2))
@@ -49,34 +51,42 @@ class valueAgent(object):
                 remain_budget   = (budget - ntrained) / budget
                 remain_new_bgt  = max(budget-ntrained-1, 0) / budget
                 remain_episodes = (episodes - episode) / episodes
+                S_old           = copy.deepcopy(S)
 
                 if (np.random.rand(1)[0]>exporation_rate):
                     # Predict Rewards of different actions
-                    [x_select, y_select] = self.env.get_next_selection_batch()
+                    [x_select, y_select, select_idx] = self.env.get_next_selection_batch()
                     S[:, 0:-2] = self.get_next_state_from_env(x_select)
                     S[:, -2] = remain_budget
                     S[:, -1] = remain_episodes
 
                     # Select the best k-th images
-                    predicts, tops, _ = self.predict(S)
-                    batch_x = x_select[tops]
-                    batch_y = y_select[tops]
+                    predicts, train_idx, _ = self.predict(S)
+                    batch_x = x_select[train_idx]
+                    batch_y = y_select[train_idx]
 
                 else:
-                    [x_select, y_select] = self.env.get_next_selection_batch()
+                    [x_select, y_select, select_idx] = self.env.get_next_selection_batch()
                     S[:, 0:-2] = self.get_next_state_from_env(x_select)
                     S[:, -2] = remain_budget
                     S[:, -1] = remain_episodes
 
-                    batch_x = x_select[0:train_size]
-                    batch_y = y_select[0:train_size]
+                    train_idx = np.arange(train_size)
+                    batch_x = x_select[train_idx]
+                    batch_y = y_select[train_idx]
+
+                if iteration > 0:
+                    pair = {"S":S_old, "select_idx":select_idx, "train_idx":train_idx, "S_":S, "R":reward}
+                    self.memory.append(pair)
 
 
                 # Train Classification Network
                 self.train_env(batch_x, batch_y, epochs)
 
                 # Train DQN Network
-                [x_new_select, y_new_select] = self.env.get_next_selection_batch(peek=True)
+
+                
+                [x_new_select, y_new_select, select_idx] = self.env.get_next_selection_batch(peek=True)
                 S_new[:, 0:-2] = self.get_next_state_from_env(x_new_select)
                 S_new[:, -2] = remain_new_bgt
                 S_new[:, -1] = remain_episodes
@@ -85,7 +95,7 @@ class valueAgent(object):
                 avg_V = np.mean(predicts_new[tops_new])
                 reward = self.get_validation_accuracy(nImages=validation_images)
 
-                self.train_agent(reward, S_new[tops_new], avg_V)
+                self.train_agent(reward, S[train_idx], avg_V)
                 # print("episode:", episode, "  iteration:", iteration, "reward: ", reward, "exporation_rate:", exporation_rate)
 
             [top_reward, top_dist] = self.evaluate(isStream=True, trainTop=True)
@@ -106,8 +116,9 @@ class valueAgent(object):
 
     def begin_episode(self):
         """ Reset the agent memory and the environment """
-        # TODO: reset the agent memory
+        # Done: reset the agent memory
         self.env.resetNetwork()
+        self.memory = []
 
     def reset_network(self):
         """ Reset the classification network """
@@ -175,7 +186,7 @@ class valueAgent(object):
             ntrained        = iteration * train_size
             remain_budget   = (budget - ntrained) / budget
 
-            [x_select, y_select] = self.env.get_next_selection_batch()
+            [x_select, y_select, idx] = self.env.get_next_selection_batch()
             S[:, 0:-2] = self.get_next_state_from_env(x_select)
             S[:, -2] = remain_budget
             S[:, -1] = remain_episodes
