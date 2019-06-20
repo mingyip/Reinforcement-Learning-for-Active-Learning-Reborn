@@ -27,27 +27,30 @@ class bestVsecondAgent(object):
 
         # Set training array and variable
         S               = np.zeros((selection_size, self.num_class+2))
+        counter         = 0
 
         for episode in range(episodes):
             self.begin_episode()
+            counter = 0
 
             for iteration in range(int(budget/train_size)):
                 ntrained        = iteration * train_size
                 remain_budget   = (budget - ntrained) / budget
                 remain_episodes = (episodes - episode) / episodes
 
-                [x_select, y_select] = self.env.get_next_selection_batch()
+                [x_select, y_select, idx] = self.env.get_next_selection_batch()
                 S[:, 0:-2] = self.get_next_state_from_env(x_select)
                 S[:, -2] = remain_budget
                 S[:, -1] = remain_episodes
 
                 train_idx = self.get_train_set(S[:, 0:-2])
                 self.train_env(x_select[train_idx], y_select[train_idx], epochs)
+                counter = counter + len(train_idx)
 
                 reward = self.get_validation_accuracy(1000)
                 print("Eps:", episode, " Iter:", iteration, " Reward:", reward, end="\r")
             reward = self.get_test_accuracy()
-            print(str.format('Eps:{0:3.0f} R:{1:.2f}                            ', episode, reward))
+            print(str.format('Eps:{0:3.0f} R:{1:.2f} Size: {2:3.0f}                          ', episode, reward, counter))
             # print(str.format('dist:{0:3.0f} {1:3.0f} {2:3.0f} {3:3.0f} {4:3.0f} {5:3.0f} {6:3.0f} {7:3.0f} {8:3.0f} {9:3.0f}', dist[0], dist[1], dist[2], dist[3], dist[4], dist[5], dist[6], dist[7], dist[8], dist[9]))
 
 
@@ -74,7 +77,7 @@ class bestVsecondAgent(object):
         scores = sorted_set[:, -1] - sorted_set[:, -2]
         ranked = np.argsort(scores)
         # lows = ranked[-train_size:]
-        tops = ranked[:-train_size]
+        tops = ranked[0:train_size]
 
         # print(sorted_set)
         # print(scores)
