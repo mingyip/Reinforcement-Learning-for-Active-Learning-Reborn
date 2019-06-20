@@ -14,9 +14,10 @@ class valueAgent(object):
         self.sess = sess
         self.env = env
         # super(valueAgent, self).__init__(n_class=self.env.nclass, lr=lr, gamma=gamma, scopeName="dqn_mnist64x5")
-        self.dqn_init = mnist64x5_model(self.env.nclass, gamma=gamma, scopeName="dqn_init")
-        self.dqn = mnist64x5_model(self.env.nclass, gamma=gamma, scopeName="dqn_train")
-        self.memory = []
+        self.dqn_init   = mnist64x5_model(self.env.nclass, gamma=gamma, scopeName="dqn_init")
+        self.dqn        = mnist64x5_model(self.env.nclass, gamma=gamma, scopeName="dqn_train")
+        self.dqn_best   = mnist64x5_model(self.env.nclass, gamma=gamma, scopeName="dqn_best")
+        self.memory     = []
 
     def train(self):
         """ Reinforcement Learning Algorithm """
@@ -43,7 +44,8 @@ class valueAgent(object):
         last_remain_budget      = None
         last_remain_episodes    = None
         last_status             = np.zeros((selection_size, self.num_class+2))
-
+        best_reward             = -1
+        best_episode            = -1
 
         for episode in range(episodes):
             self.begin_episode()
@@ -59,7 +61,6 @@ class valueAgent(object):
                 remain_new_bgt  = max(budget-ntrained-1, 0) / budget
                 remain_episodes = (episodes - episode) / episodes
                 S_old           = copy.deepcopy(S)
-                # reward_old      = reward
 
                 if (np.random.rand(1)[0]>exporation_rate):
                     # Predict Rewards of different actions
@@ -101,29 +102,27 @@ class valueAgent(object):
                 avg_V = np.mean(predicts_new[tops_new])
                 reward = self.get_validation_accuracy(nImages=validation_images)
 
-
                 self.train_agent(reward, S[train_idx], avg_V)
-
                 print("Eps:", episode, " Iter:", iteration, " Reward:", reward, end="\r")
-                # print("episode:", episode, "  iteration:", iteration, "reward: ", reward, "exporation_rate:", exporation_rate)
 
             [top_reward, top_dist, top_size] = self.evaluate(isStream=True, trainTop=True)
             print(str.format('Eps:{0:3.0f} R:{1:.4f} S:{3} Exp:{2:.2f} ', episode, top_reward, exporation_rate, top_size), end='')
             print(str.format('dist:{0:3.0f} {1:3.0f} {2:3.0f} {3:3.0f} {4:3.0f} {5:3.0f} {6:3.0f} {7:3.0f} {8:3.0f} {9:3.0f}', top_dist[0], top_dist[1], top_dist[2], top_dist[3], top_dist[4], top_dist[5], top_dist[6], top_dist[7], top_dist[8], top_dist[9]))
 
-            # if top_reward > 0.95:
-            #     for i in range(10):
-            #         [top_reward, top_dist, top_size] = self.evaluate(isStream=True, trainTop=True)
-            #         # [low_reward, low_dist, low_size] = self.evaluate(isStream=True, trainTop=False)
-
-            #         # print("Eps:", episode, " R:", reward, " ExpRate:", exporation_rate)
-            #         print(str.format('        R:{0:.4f} S:{1}          ', top_reward, top_size), end='')
-            #         print(str.format('dist:{0:3.0f} {1:3.0f} {2:3.0f} {3:3.0f} {4:3.0f} {5:3.0f} {6:3.0f} {7:3.0f} {8:3.0f} {9:3.0f}', top_dist[0], top_dist[1], top_dist[2], top_dist[3], top_dist[4], top_dist[5], top_dist[6], top_dist[7], top_dist[8], top_dist[9]))
-            #         # print(str.format('        R:{0:.2f} S:{1}          ', low_reward, low_size), end='')
-            #         # print(str.format('dist:{0:3.`0f} {1:3.0f} {2:3.0f} {3:3.0f} {4:3.0f} {5:3.0f} {6:3.0f} {7:3.0f} {8:3.0f} {9:3.0f}', low_dist[0], low_dist[1], low_dist[2], low_dist[3], low_dist[4], low_dist[5], low_dist[6], low_dist[7], low_dist[8], low_dist[9]))
+            if top_reward > best_reward:
+                best_reward = top_reward
+                best_episode = episode
+                self.storeBestNetworkVar()
 
             if exporation_rate > 0:
                 exporation_rate -= exporation_decay_rate
+
+        print("Evaluate The Best Network with Test data: episode ", best_episode)
+        self.restoreBestNetworkToTrainNetwork()
+        for i in range(10):
+            [reward, dist, trainsize] = self.evaluate(isValidation=False)
+            print(str.format('        R:{0:.4f} S:{1}          ', reward, trainsize), end='')
+            print(str.format('dist:{0:3.0f} {1:3.0f} {2:3.0f} {3:3.0f} {4:3.0f} {5:3.0f} {6:3.0f} {7:3.0f} {8:3.0f} {9:3.0f}', dist[0], dist[1], dist[2], dist[3], dist[4], dist[5], dist[6], dist[7], dist[8], dist[9]))
 
 
     def begin_game(self):
@@ -186,7 +185,7 @@ class valueAgent(object):
 
         return predict, top_idx, low_idx
 
-    def evaluate(self, isStream=True, trainTop=True):
+    def evaluate(self, isValidation=True, isStream=True, trainTop=True):
         """ Agent uses the current policy to train a new network """
         """ Both stream and pool based learning """
         budget          = Config.CLASSIFICATION_BUDGET
@@ -197,8 +196,8 @@ class valueAgent(object):
         iterations      = int(budget/train_size)
         S               = np.zeros((selection_size, self.num_class+2))
         remain_episodes = 0
-        validation_imgs = -1
-        distribution    = np.zeros((10))
+        num_imgs        = -1
+        distribution    = np.zeros((self.num_class))
         trainSize       = 0
 
         self.reset_network()
@@ -225,15 +224,33 @@ class valueAgent(object):
 
             self.train_env(batch_x, batch_y, epochs)
 
-        return [self.get_test_accuracy(validation_imgs), distribution, trainSize]
+        if isValidation:
+            reward = self.get_validation_accuracy(num_imgs)
+        else:
+            reward = self.get_test_accuracy(num_imgs)
+
+        return [reward, distribution, trainSize]
 
     def storeNetworkVar(self):
         """ Store network variables so that later we can re-init the network """
 
         tf_vars = tf.trainable_variables()
-        self.dqn_init_var = [var for var in tf_vars if 'dqn_init' in var.name]
-        self.dqn_train_var = [var for var in tf_vars if 'dqn_train' in var.name]
+        self.dqn_init_var   = [var for var in tf_vars if 'dqn_init' in var.name]
+        self.dqn_train_var  = [var for var in tf_vars if 'dqn_train' in var.name]
+        self.dqn_best_var   = [var for var in tf_vars if 'dqn_best' in var.name]
         self.reset_optimizer_op = tf.variables_initializer(self.dqn.optimizer.variables())
+
+    def storeBestNetworkVar(self):
+        """ save the best network variables """
+        # TODO: Check if the optimizer get copied.
+        for idx, var in enumerate(self.dqn_train_var):
+            self.sess.run(tf.assign(self.dqn_best_var[idx], var))
+
+    def restoreBestNetworkToTrainNetwork(self):
+        """ restore the best network to train network """
+        # TODO: Check if the optimizer get copied.
+        for idx, var in enumerate(self.dqn_best_var):
+            self.sess.run(tf.assign(self.dqn_train_var[idx], var))
 
     def resetNetwork(self):
         """ Re-init cnn_var with values of cnn_init_var """
