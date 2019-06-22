@@ -46,6 +46,7 @@ class loggingManger(object):
             writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
             writer.writerow(['Datetime', str(now)])
             writer.writerow(['Project', projName])
+            writer.writerow(['Agent Type', Config.AGENT_TYPE])
             writer.writerow(['Total Episodes', agentEpisodes])
             writer.writerow(['Budget', budget, '', 'Evaluation Budget', Config.EVALUATION_CLASSIFICATION_BUDGET])
             writer.writerow(['Selection Batchsize', selection_batchsize, '', 'Evaluation Selection Batchsize', Config.EVALUATION_SELECTION_BATCHSIZE])

@@ -274,8 +274,7 @@ class valueAgent(object):
 
         # File Log
         msg = [episode, reward, trainsize, exp_rate, '']
-        for i in range(self.num_class):
-            msg.append(distribution[i])
+        msg.extend(distribution)
         self.logger.log(msg)
 
 

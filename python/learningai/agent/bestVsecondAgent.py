@@ -29,8 +29,10 @@ class bestVsecondAgent(object):
         # Set training array and variable
         S               = np.zeros((selection_size, self.num_class+2))
         counter         = 0
+        dist            = 0
         reward_sum      = 0
 
+        self.logger.log(["Episode", "Accuracy", "Train size", "Dist", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, None], newline=True)
         for episode in range(episodes):
             self.begin_episode()
             counter = 0
@@ -48,15 +50,20 @@ class bestVsecondAgent(object):
                 train_idx = self.get_train_set(S[:, 0:-2])
                 self.train_env(x_select[train_idx], y_select[train_idx], epochs)
                 counter = counter + len(train_idx)
+                dist = dist + np.sum(y_select[train_idx], axis=0)
 
                 reward = self.get_validation_accuracy(1000)
                 print("Eps:", episode, " Iter:", iteration, " Reward:", reward, end="\r")
             reward = self.get_test_accuracy()
             reward_sum = reward_sum + reward
-            print(str.format('Eps:{0:3.0f} R:{1:.4f} Size: {2:3.0f}                          ', episode, reward, counter))
-            # print(str.format('dist:{0:3.0f} {1:3.0f} {2:3.0f} {3:3.0f} {4:3.0f} {5:3.0f} {6:3.0f} {7:3.0f} {8:3.0f} {9:3.0f}', dist[0], dist[1], dist[2], dist[3], dist[4], dist[5], dist[6], dist[7], dist[8], dist[9]))
+            print(str.format('Eps:{0:3.0f} R:{1:.4f} Size: {2:3.0f} ', episode, reward, counter), end='')
+            print(str.format('dist:{0:3.0f} {1:3.0f} {2:3.0f} {3:3.0f} {4:3.0f} {5:3.0f} {6:3.0f} {7:3.0f} {8:3.0f} {9:3.0f}', dist[0], dist[1], dist[2], dist[3], dist[4], dist[5], dist[6], dist[7], dist[8], dist[9]))
+            msg = [episode, reward, counter, '']
+            msg.extend(dist)
+            self.logger.log(msg)
 
         print("Mean: ", reward_sum/episodes)
+        self.logger.log(["Mean", reward_sum/episodes])
 
     def begin_episode(self):
         """ Reset the classificaiton network """
