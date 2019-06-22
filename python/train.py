@@ -52,6 +52,7 @@ def main():
     elapsed = done - start
     print(elapsed)
     logger.log(["Time elapsed", elapsed])
+    logger.move_finished_result()
 
 if __name__ == '__main__':
     main()

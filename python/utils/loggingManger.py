@@ -1,6 +1,7 @@
 
 import warnings
 import datetime
+import shutil
 import csv
 import os
 
@@ -22,6 +23,8 @@ class loggingManger(object):
         epochs                  = Config.CLASSIFICATION_EPOCH 
 
         self.masterFolder       = Config.LOG_TOP_FOLDER
+        self.runFolder          = "run"
+        self.finishFolder       = "finish"
         
         now = datetime.datetime.now()
         timestamp = "{0:02d}{1:02d}{2:02d}-{3:02d}{4:02d}{5:02d}".format(
@@ -31,16 +34,17 @@ class loggingManger(object):
             agentEpisodes, budget, selection_batchsize, training_batchsize, epochs
             )
         self.folderName = "{0}_{1}_{2}".format(timestamp, projName, config_info)
-        self.outpath_path = os.path.join(self.masterFolder, self.folderName)
+        self.runFolder_path = os.path.join(self.masterFolder, self.runFolder)
+        self.finishFolder_path = os.path.join(self.masterFolder, self.finishFolder)
+        self.outpath_path = os.path.join(self.masterFolder, self.runFolder, self.folderName)
         config_path = os.path.join(self.outpath_path, config_filename)
         print(self.folderName)
 
-        if not os.path.isdir(self.masterFolder):
-            os.mkdir(self.masterFolder)
-        if not os.path.isdir(self.outpath_path):
-            os.mkdir(self.outpath_path)
-        if not os.path.isfile(config_path):
-            copy(config_filename, self.outpath_path)
+        if not os.path.isdir(self.masterFolder):        os.mkdir(self.masterFolder)
+        if not os.path.isdir(self.runFolder_path):      os.mkdir(self.runFolder_path)
+        if not os.path.isdir(self.finishFolder_path):   os.mkdir(self.finishFolder_path)
+        if not os.path.isdir(self.outpath_path):        os.mkdir(self.outpath_path)
+        if not os.path.isfile(config_path):             copy(config_filename, self.outpath_path)
 
         with open(self.outpath_path+'/log.csv', mode='w') as file:
             writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
@@ -63,10 +67,15 @@ class loggingManger(object):
         return cls.instance
 
     def log(self, msg, filename=None, newline=False):
-        """ write messages to log file """
+        """ Write messages to log file """
         
         with open(self.outpath_path+'/log.csv', mode='a') as file:
             writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
             if newline:
                 writer.writerow('')
             writer.writerow(msg)
+
+    def move_finished_result(self):
+        """ Move finished result to finish folder """
+
+        shutil.move(self.outpath_path, os.path.join(self.masterFolder, self.finishFolder))
