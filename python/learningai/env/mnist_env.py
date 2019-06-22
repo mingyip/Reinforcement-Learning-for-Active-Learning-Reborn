@@ -70,8 +70,8 @@ class mnist_env(object):
 
     def get_next_selection_batch(self, batchsize=None, peek=False):
         """ Return the mext image batchfor selection step """
-        # DONE: After the selection is full, reshuffle the batch
-        # DONE: Use another array to store the original img batch to retain the order?
+        # DONE:  After the selection is full, reshuffle the batch
+        # DONE:  Use another array to store the original img batch to retain the order?
         # TODO: np.random.shuffle makes peek not static
         # TODO: Refactor the code after we implement experience replay and multi-step
 

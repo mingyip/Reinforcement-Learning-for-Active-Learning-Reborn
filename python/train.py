@@ -16,6 +16,8 @@ import os
 from learningai.agent.bestVsecondAgent import bestVsecondAgent as bvsAgent
 from learningai.agent.valueAgent import valueAgent
 from learningai.env.mnist_env import mnist_env
+from utils.loggingManger import loggingManger
+from config import Config
 
 
 def main():
@@ -24,27 +26,32 @@ def main():
     # tf.logging.set_verbosity(tf.logging.DEBUG)
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     np.set_printoptions(precision=6)
-    tf.random.set_random_seed(20)
-    np.random.seed(20)
+    tf.random.set_random_seed(Config.TF_SEED)
+    np.random.seed(Config.NP_SEED)
 
+    logger = loggingManger()
     sess = tf.Session()
     cnn_env = mnist_env(sess, lr=1e-4)
-    dqn_agent = valueAgent(sess, cnn_env, lr=1e-3, gamma=0.9)
-        # bvs_agent = bvsAgent(sess, cnn_env)
+    
+    agent_type = Config.AGENT_TYPE
+    if agent_type == "valueAgent":
+        agent = valueAgent(sess, cnn_env, logger, lr=1e-3, gamma=0.9)
+    elif agent_type == "BVSB":
+        agent = bvsAgent(sess, cnn_env, logger)
 
     sess.run(tf.global_variables_initializer())
     cnn_env.storeNetworkVar()
     cnn_env.resetNetwork()
-    dqn_agent.storeNetworkVar()
-    dqn_agent.resetNetwork()
+    agent.store_network_var()
+    agent.reset_network()
 
-    dqn_agent.train()
-        # bvs_agent.train()
+    agent.train()
     print("End of Training")
 
     done = time.time()
     elapsed = done - start
     print(elapsed)
+    logger.log(["Time elapsed", elapsed])
 
 if __name__ == '__main__':
     main()
