@@ -19,7 +19,7 @@ class bestVsecondAgent(object):
 
         # Set Constant/ Params
         budget          = Config.EVALUATION_CLASSIFICATION_BUDGET
-        episodes        = Config.AGENT_TRAINING_EPISODES
+        episodes        = Config.EVALUATION_EPISODES
         epochs          = Config.EVALUATION_CLASSIFICATION_EPOCH
         selection_size  = Config.EVALUATION_SELECTION_BATCHSIZE
         train_size      = Config.EVALUATION_TRAINING_BATCHSIZE
@@ -35,6 +35,7 @@ class bestVsecondAgent(object):
         self.logger.log(["Episode", "Accuracy", "Train size", "Dist", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, None], newline=True)
         for episode in range(episodes):
             self.begin_episode()
+            dist    = 0 
             counter = 0
 
             for iteration in range(int(budget/train_size)):
@@ -82,7 +83,7 @@ class bestVsecondAgent(object):
     def get_train_set(self, select_set):
         """ Pick training set from the selection set """
         
-        train_size = Config.TRAINING_BATCHSIZE
+        train_size = Config.EVALUATION_TRAINING_BATCHSIZE
 
         sorted_set = np.sort(select_set)
         scores = sorted_set[:, -1] - sorted_set[:, -2]
