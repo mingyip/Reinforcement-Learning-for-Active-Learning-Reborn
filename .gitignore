@@ -1,0 +1,6 @@
+# Program Folders #
+result/
+configs/
+
+# Python Files #
+*.pyc
