@@ -14,6 +14,7 @@ import os
 
 
 from learningai.agent.bestVsecondAgent import bestVsecondAgent as bvsAgent
+from learningai.agent.randomAgent import randomAgent
 from learningai.agent.valueAgent import valueAgent
 from learningai.env.mnist_env import mnist_env
 from utils.loggingManger import loggingManger
@@ -38,6 +39,8 @@ def main():
         agent = valueAgent(sess, cnn_env, logger, lr=1e-3, gamma=0.9)
     elif agent_type == "BVSB":
         agent = bvsAgent(sess, cnn_env, logger)
+    elif agent_type == "random":
+        agent = randomAgent(sess, cnn_env, logger)
 
     sess.run(tf.global_variables_initializer())
     cnn_env.storeNetworkVar()
