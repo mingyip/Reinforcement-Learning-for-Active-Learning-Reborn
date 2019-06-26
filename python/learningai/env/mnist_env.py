@@ -130,7 +130,7 @@ class mnist_env(object):
         return the output probability of the final layer 
         """
         [y, fc1] = self.sess.run([self.cnn.y, self.cnn.fc1], {self.cnn.x: x_train})
-        return [y, fc1]
+        return y
 
     def get_validation_accuracy(self, nImages=-1):
         feed_dict = {self.cnn.x:self.x_val[0:nImages], self.cnn.y_:self.y_val[0:nImages]}

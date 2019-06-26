@@ -40,9 +40,9 @@ class valueAgent(object):
         validation_images       = 1500
 
         # Set array and variable
-        S                       = np.zeros((selection_size, self.num_class+1024+2))
-        S_new                   = np.zeros((selection_size, self.num_class+1024+2))
-        S_old                   = np.zeros((selection_size, self.num_class+1024+2))
+        S                       = np.zeros((selection_size, self.num_class+2))
+        S_new                   = np.zeros((selection_size, self.num_class+2))
+        S_old                   = np.zeros((selection_size, self.num_class+2))
         last_remain_budget      = None
         last_remain_episodes    = None
         last_status             = np.zeros((selection_size, self.num_class+2))
@@ -152,10 +152,10 @@ class valueAgent(object):
         """ Get output probability of new images from the environment """
         [y, fc] = self.env.get_output_probability(imgs)
 
-        state = np.zeros((Config.SELECTION_BATCHSIZE, self.num_class+1024))
-        state[:, 0:10] = y
-        state[:, 10:10+1024] = fc
-        return state
+        # state = np.zeros((Config.SELECTION_BATCHSIZE, self.num_class+1024))
+        # state[:, 0:10] = y
+        # state[:, 10:10+1024] = fc
+        return y
 
     def get_validation_accuracy(self, nImages=-1):
         """ Get validation reward from the environment """
@@ -204,7 +204,7 @@ class valueAgent(object):
         selection_size  = Config.EVALUATION_SELECTION_BATCHSIZE
         train_size      = Config.EVALUATION_TRAINING_BATCHSIZE
         iterations      = int(budget/train_size)
-        S               = np.zeros((selection_size, self.num_class+1024+2))
+        S               = np.zeros((selection_size, self.num_class+2))
         remain_episodes = 0
         num_imgs        = -1
         distribution    = np.zeros((self.num_class))
