@@ -51,12 +51,12 @@ class valueAgent(object):
 
 
         # self.logger.log(["Episode", "Accuracy", "Train size", "Exporation Rate", "Dist", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, None], newline=True)
-        self.logger.log(["Episode", "Accuracy", "Train size", "Exporation Rate", "Dist", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, "", "low Accuracy", "Dist", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ], newline=True)
+        self.logger.log(["Episode", "Accuracy", "Train size", "Exporation Rate", "Top_dist", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, "Top_pred", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, "", "low Accuracy", "low_dist", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, "low_pred", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ], newline=True)
         for episode in range(episodes):
             self.begin_episode()
-            [top_reward, top_dist, top_size] = self.evaluate(isStream=True, trainTop=True)
-            [low_reward, low_dist, low_size] = self.evaluate(isStream=True, trainTop=False)
-            self.log_training_results(episode, top_reward, exporation_rate, top_size, top_dist, low_reward, low_dist)
+            [top_reward, top_dist, top_size, top_pred] = self.evaluate(isStream=True, trainTop=True)
+            [low_reward, low_dist, low_size, low_pred] = self.evaluate(isStream=True, trainTop=False)
+            self.log_training_results(episode, top_reward, exporation_rate, top_size, top_dist, top_pred, low_reward, low_dist, low_pred)
 
             for iteration in range(int(budget/train_size)):
                 
@@ -119,9 +119,9 @@ class valueAgent(object):
                 self.train_agent(reward, S[train_idx], avg_V)
                 print("Eps:", episode, " Iter:", iteration, " Reward:", reward, end="\r")
 
-            [top_reward, top_dist, top_size] = self.evaluate(isStream=True, trainTop=True)
-            [low_reward, low_dist, low_size] = self.evaluate(isStream=True, trainTop=False)
-            self.log_training_results(episode, top_reward, exporation_rate, top_size, top_dist, low_reward, low_dist)
+            [top_reward, top_dist, top_size, top_pred] = self.evaluate(isStream=True, trainTop=True)
+            [low_reward, low_dist, low_size, low_pred] = self.evaluate(isStream=True, trainTop=False)
+            self.log_training_results(episode, top_reward, exporation_rate, top_size, top_dist, top_pred, low_reward, low_dist, low_pred)
 
             if top_reward > best_reward:
                 best_reward = top_reward
@@ -244,7 +244,7 @@ class valueAgent(object):
         else:
             reward = self.get_test_accuracy(num_imgs)
 
-        return [reward, distribution, trainSize]
+        return [reward, distribution, trainSize, predicts[train_idx]]
 
     def evaluate_best_agent(self, best_episode, best_reward):
         """ Evaluate the best agent """
@@ -265,7 +265,7 @@ class valueAgent(object):
         print("Mean: ", mean_reward)
         self.logger.log(["Mean", mean_reward])
 
-    def log_training_results(self, episode, reward, exp_rate, trainsize, distribution, low_reward=None, low_distribution=None):
+    def log_training_results(self, episode, reward, exp_rate, trainsize, distribution, top_pred=None, low_reward=None, low_distribution=None, low_pred=None):
         """ Write training logs to file """
 
         # Console Log
@@ -286,6 +286,10 @@ class valueAgent(object):
         msg = [episode, reward, trainsize, exp_rate, '']
         msg.extend(distribution)
 
+        if top_pred is not None:
+            msg.append('')
+            msg.extend(top_pred)
+
         if low_reward is not None:
             msg.append('')
             msg.append(low_reward)
@@ -293,6 +297,10 @@ class valueAgent(object):
         if low_distribution is not None:
             msg.append('')
             msg.extend(low_distribution)
+
+        if low_pred is not None:
+            msg.append('')
+            msg.extend(low_pred)
 
         self.logger.log(msg)
 
