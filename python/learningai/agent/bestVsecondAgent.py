@@ -118,5 +118,3 @@ class bestVsecondAgent(object):
         """ Get test reward from the environment """
         return self.env.get_test_accuracy(nImages)
 
-    def store_network_var(self):
-        pass
