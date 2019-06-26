@@ -120,6 +120,3 @@ class bestVsecondAgent(object):
 
     def store_network_var(self):
         pass
-
-    def reset_network(self):
-        pass
