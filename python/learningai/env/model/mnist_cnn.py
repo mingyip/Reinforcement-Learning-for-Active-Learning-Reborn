@@ -30,6 +30,7 @@ class mnist_cnn(object):
             self.x = x
             self.y = y
             self.y_ = y_
+            self.fc1 = fc1
             self.loss = loss
             self.accuracy = accuracy
             self.train_op = train_op

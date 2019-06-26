@@ -63,6 +63,7 @@ class mnist_env(object):
         self.x_test = x_test
         self.y_test = y_test
 
+
     def train_env(self, x_train, y_train, epoch):
         feed_dict = {self.cnn.x:x_train, self.cnn.y_:y_train}
         for i in range(epoch):
@@ -128,8 +129,8 @@ class mnist_env(object):
         Feed x_train into the network and 
         return the output probability of the final layer 
         """
-        y = self.sess.run(self.cnn.y, {self.cnn.x: x_train})
-        return y
+        [y, fc1] = self.sess.run([self.cnn.y, self.cnn.fc1], {self.cnn.x: x_train})
+        return [y, fc1]
 
     def get_validation_accuracy(self, nImages=-1):
         feed_dict = {self.cnn.x:self.x_val[0:nImages], self.cnn.y_:self.y_val[0:nImages]}
@@ -159,4 +160,4 @@ class mnist_env(object):
     def resetEnvCounter(self):
         """ Environment image counter """
         self.train_counter = 0
-        self.train_index = np.arange(ntrain)
+        self.train_index = np.arange(self.ntrain)

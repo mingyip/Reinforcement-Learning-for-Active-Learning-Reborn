@@ -8,7 +8,7 @@ class mnist64x5_model(object):
 
         with tf.variable_scope(scopeName):
             # Placeholder Input
-            s = tf.placeholder(tf.float32, [None, n_class+2])
+            s = tf.placeholder(tf.float32, [None, n_class+1024+2])
             # b = tf.placeholder(tf.float32, [None, 1])
             # e = tf.placeholder(tf.float32, [None, 1])
             R = tf.placeholder(tf.float32, [None, 1])
@@ -17,7 +17,7 @@ class mnist64x5_model(object):
              # Network
             # concat = tf.concat([s, b, e], 1)
             # fc1 = tf.layers.dense(concat, 64, tf.nn.relu)
-            fc1 = tf.layers.dense(s, 64, tf.nn.relu)
+            fc1 = tf.layers.dense(s, 128, tf.nn.relu)
             fc2 = tf.layers.dense(fc1, 32, tf.nn.relu)
             fc3 = tf.layers.dense(fc2, 16, tf.nn.relu)
             fc4 = tf.layers.dense(fc3, 8, tf.nn.relu)

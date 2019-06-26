@@ -40,9 +40,9 @@ class valueAgent(object):
         validation_images       = 1500
 
         # Set array and variable
-        S                       = np.zeros((selection_size, self.num_class+2))
-        S_new                   = np.zeros((selection_size, self.num_class+2))
-        S_old                   = np.zeros((selection_size, self.num_class+2))
+        S                       = np.zeros((selection_size, self.num_class+1024+2))
+        S_new                   = np.zeros((selection_size, self.num_class+1024+2))
+        S_old                   = np.zeros((selection_size, self.num_class+1024+2))
         last_remain_budget      = None
         last_remain_episodes    = None
         last_status             = np.zeros((selection_size, self.num_class+2))
@@ -57,10 +57,13 @@ class valueAgent(object):
             # print("Begin reward: ", reward)
 
             for iteration in range(int(budget/train_size)):
-    
+                
+                # print(int(budget/train_size))
+                # print(train_end_at)
+                # raise 
                 # Stop training if >= train end
-                if iteration >= train_end_at:   
-                    break
+                # if iteration >= train_end_at:
+                #     break
 
                 ntrained        = iteration * train_size
                 remain_budget   = (budget - ntrained) / budget
@@ -109,8 +112,8 @@ class valueAgent(object):
                 reward = self.get_validation_accuracy(nImages=validation_images)
 
                 # Skip training if < train start
-                if iteration <  train_start_at: 
-                    continue
+                # if iteration <  train_start_at: 
+                #     continue
                 self.train_agent(reward, S[train_idx], avg_V)
                 print("Eps:", episode, " Iter:", iteration, " Reward:", reward, end="\r")
 
@@ -147,13 +150,17 @@ class valueAgent(object):
 
     def get_next_state_from_env(self, imgs):
         """ Get output probability of new images from the environment """
-        state = self.env.get_output_probability(imgs)
+        [y, fc] = self.env.get_output_probability(imgs)
+
+        state = np.zeros((Config.SELECTION_BATCHSIZE, self.num_class+1024))
+        state[:, 0:10] = y
+        state[:, 10:10+1024] = fc
         return state
 
     def get_validation_accuracy(self, nImages=-1):
         """ Get validation reward from the environment """
         return self.env.get_validation_accuracy(nImages)
-    
+
     def get_test_accuracy(self, nImages=-1):
         """ Get test reward from the environment """
         return self.env.get_test_accuracy(nImages)
@@ -197,7 +204,7 @@ class valueAgent(object):
         selection_size  = Config.EVALUATION_SELECTION_BATCHSIZE
         train_size      = Config.EVALUATION_TRAINING_BATCHSIZE
         iterations      = int(budget/train_size)
-        S               = np.zeros((selection_size, self.num_class+2))
+        S               = np.zeros((selection_size, self.num_class+1024+2))
         remain_episodes = 0
         num_imgs        = -1
         distribution    = np.zeros((self.num_class))
@@ -250,7 +257,7 @@ class valueAgent(object):
             [reward, dist, trainsize] = self.evaluate(isValidation=False)
             reward_sum = reward_sum + reward
             self.log_training_results(None, reward, None, trainsize, dist)
-        
+
         mean_reward = reward_sum/eval_eps
         print("Mean: ", mean_reward)
         self.logger.log(["Mean", mean_reward])
