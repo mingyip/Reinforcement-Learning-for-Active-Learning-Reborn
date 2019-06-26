@@ -50,11 +50,13 @@ class valueAgent(object):
         best_episode            = -1
 
 
-        self.logger.log(["Episode", "Accuracy", "Train size", "Exporation Rate", "Dist", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, None], newline=True)
+        # self.logger.log(["Episode", "Accuracy", "Train size", "Exporation Rate", "Dist", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, None], newline=True)
+        self.logger.log(["Episode", "Accuracy", "Train size", "Exporation Rate", "Dist", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, "", "low Accuracy", "Dist", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ], newline=True)
         for episode in range(episodes):
             self.begin_episode()
-            reward = self.get_validation_accuracy(nImages=validation_images)
-            # print("Begin reward: ", reward)
+            [top_reward, top_dist, top_size] = self.evaluate(isStream=True, trainTop=True)
+            [low_reward, low_dist, low_size] = self.evaluate(isStream=True, trainTop=False)
+            self.log_training_results(episode, top_reward, exporation_rate, top_size, top_dist, low_reward, low_dist)
 
             for iteration in range(int(budget/train_size)):
                 
@@ -118,7 +120,8 @@ class valueAgent(object):
                 print("Eps:", episode, " Iter:", iteration, " Reward:", reward, end="\r")
 
             [top_reward, top_dist, top_size] = self.evaluate(isStream=True, trainTop=True)
-            self.log_training_results(episode, top_reward, exporation_rate, top_size, top_dist)
+            [low_reward, low_dist, low_size] = self.evaluate(isStream=True, trainTop=False)
+            self.log_training_results(episode, top_reward, exporation_rate, top_size, top_dist, low_reward, low_dist)
 
             if top_reward > best_reward:
                 best_reward = top_reward
@@ -150,7 +153,7 @@ class valueAgent(object):
 
     def get_next_state_from_env(self, imgs):
         """ Get output probability of new images from the environment """
-        [y, fc] = self.env.get_output_probability(imgs)
+        y = self.env.get_output_probability(imgs)
 
         # state = np.zeros((Config.SELECTION_BATCHSIZE, self.num_class+1024))
         # state[:, 0:10] = y
@@ -262,7 +265,7 @@ class valueAgent(object):
         print("Mean: ", mean_reward)
         self.logger.log(["Mean", mean_reward])
 
-    def log_training_results(self, episode, reward, exp_rate, trainsize, distribution):
+    def log_training_results(self, episode, reward, exp_rate, trainsize, distribution, low_reward=None, low_distribution=None):
         """ Write training logs to file """
 
         # Console Log
@@ -282,6 +285,15 @@ class valueAgent(object):
         # File Log
         msg = [episode, reward, trainsize, exp_rate, '']
         msg.extend(distribution)
+
+        if low_reward is not None:
+            msg.append('')
+            msg.append(low_reward)
+
+        if low_distribution is not None:
+            msg.append('')
+            msg.extend(low_distribution)
+
         self.logger.log(msg)
 
 

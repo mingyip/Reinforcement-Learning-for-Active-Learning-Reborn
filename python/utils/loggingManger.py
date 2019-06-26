@@ -66,10 +66,13 @@ class loggingManger(object):
 
         return cls.instance
 
-    def log(self, msg, filename=None, newline=False):
+    def log(self, msg, filename=None, newline=False, logfile=None):
         """ Write messages to log file """
         
-        with open(self.outpath_path+'/log.csv', mode='a') as file:
+        if logfile is None:
+            logfile = 'log.csv'
+
+        with open(self.outpath_path+'/'+logfile, mode='a') as file:
             writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
             if newline:
                 writer.writerow('')

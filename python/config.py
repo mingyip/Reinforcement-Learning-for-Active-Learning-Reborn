@@ -6,9 +6,9 @@ class Config:
     DESCRIPTION = ""
     
     # AGENT TYPE
-    # AGENT_TYPE = "valueAgent"
+    AGENT_TYPE = "valueAgent"
     # AGENT_TYPE = "BVSB"
-    AGENT_TYPE = "random"
+    # AGENT_TYPE = "random"
 
     # TRANING SETTING
     AGENT_TRAINING_EPISODES = 5
