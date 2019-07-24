@@ -25,7 +25,7 @@ class loggingManger(object):
         self.masterFolder       = Config.LOG_TOP_FOLDER
         self.runFolder          = "run"
         self.finishFolder       = "finish"
-        
+
         now = datetime.datetime.now()
         timestamp = "{0:02d}{1:02d}{2:02d}-{3:02d}{4:02d}{5:02d}".format(
             now.year, now.month, now.day, now.hour, now.minute, now.second
@@ -58,6 +58,20 @@ class loggingManger(object):
             writer.writerow(['Epoch', epochs, '', 'Evaluation Epoch', Config.EVALUATION_CLASSIFICATION_EPOCH])
             writer.writerow(['Exploration Decay Rate', Config.EXPLORATION_DECAY_RATE])
 
+        with open(self.outpath_path+'/bias.csv', mode='w') as file:
+            writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            writer.writerow(['Datetime', str(now)])
+            writer.writerow(['Project', projName])
+            writer.writerow(['Agent Type', Config.AGENT_TYPE])
+            writer.writerow(['Total Episodes', agentEpisodes])
+            writer.writerow(['Budget', budget, '', 'Evaluation Budget', Config.EVALUATION_CLASSIFICATION_BUDGET])
+            writer.writerow(['Selection Batchsize', selection_batchsize, '', 'Evaluation Selection Batchsize', Config.EVALUATION_SELECTION_BATCHSIZE])
+            writer.writerow(['Train Batchsize', training_batchsize, '', 'Evaluation Train Batchsize', Config.EVALUATION_TRAINING_BATCHSIZE])
+            writer.writerow(['Epoch', epochs, '', 'Evaluation Epoch', Config.EVALUATION_CLASSIFICATION_EPOCH])
+            writer.writerow(['Exploration Decay Rate', Config.EXPLORATION_DECAY_RATE])
+            writer.writerow([''])
+            writer.writerow([''])
+
     def __new__(cls):
         if not hasattr(cls, 'instance') or not cls.instance:
             cls.instance = super().__new__(cls)
@@ -68,7 +82,7 @@ class loggingManger(object):
 
     def log(self, msg, filename=None, newline=False, logfile=None):
         """ Write messages to log file """
-        
+
         if logfile is None:
             logfile = 'log.csv'
 

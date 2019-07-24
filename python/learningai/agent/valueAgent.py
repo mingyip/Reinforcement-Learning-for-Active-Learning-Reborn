@@ -48,7 +48,7 @@ class valueAgent(object):
         last_status             = np.zeros((selection_size, self.num_class+2))
         best_reward             = -1
         best_episode            = -1
-
+        train_steps             = 0
 
         # self.logger.log(["Episode", "Accuracy", "Train size", "Exporation Rate", "Dist", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, None], newline=True)
         self.logger.log(["Episode", "Accuracy", "Train size", "Exporation Rate", "Top_dist", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, "Top_pred", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, "", "low Accuracy", "low_dist", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, "low_pred", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ], newline=True)
@@ -59,7 +59,8 @@ class valueAgent(object):
             self.log_training_results(episode, top_reward, exporation_rate, top_size, top_dist, top_pred, low_reward, low_dist, low_pred)
 
             for iteration in range(int(budget/train_size)):
-                
+                # self.log_bias_prediction(train_steps)
+
                 # print(int(budget/train_size))
                 # print(train_end_at)
                 # raise 
@@ -96,9 +97,9 @@ class valueAgent(object):
                     batch_x = x_select[train_idx]
                     batch_y = y_select[train_idx]
 
-                if iteration > 0:
-                    pair = {"S":S_old, "select_idx":select_idx, "train_idx":train_idx, "S_":S, "R":reward}
-                    self.memory.append(pair)
+                # if iteration > 0:
+                #     pair = {"S":S_old, "select_idx":select_idx, "train_idx":train_idx, "S_":S, "R":top_reward}
+                #     self.memory.append(pair)
 
                 # Train Classification Network
                 self.train_env(batch_x, batch_y, epochs)
@@ -116,12 +117,14 @@ class valueAgent(object):
                 # Skip training if < train start
                 # if iteration <  train_start_at: 
                 #     continue
+
                 self.train_agent(reward, S[train_idx], avg_V)
+                train_steps = train_steps + 1
                 print("Eps:", episode, " Iter:", iteration, " Reward:", reward, end="\r")
 
-            [top_reward, top_dist, top_size, top_pred] = self.evaluate(isStream=True, trainTop=True)
-            [low_reward, low_dist, low_size, low_pred] = self.evaluate(isStream=True, trainTop=False)
-            self.log_training_results(episode, top_reward, exporation_rate, top_size, top_dist, top_pred, low_reward, low_dist, low_pred)
+            # [top_reward, top_dist, top_size, top_pred] = self.evaluate(isStream=True, trainTop=True)
+            # [low_reward, low_dist, low_size, low_pred] = self.evaluate(isStream=True, trainTop=False)
+            # self.log_training_results(episode, top_reward, exporation_rate, top_size, top_dist, top_pred, low_reward, low_dist, low_pred)
 
             if top_reward > best_reward:
                 best_reward = top_reward
@@ -131,6 +134,10 @@ class valueAgent(object):
             if exporation_rate > 0:
                 exporation_rate -= exporation_decay_rate
 
+
+        [top_reward, top_dist, top_size, top_pred] = self.evaluate(isStream=True, trainTop=True)
+        [low_reward, low_dist, low_size, low_pred] = self.evaluate(isStream=True, trainTop=False)
+        self.log_training_results(episode, top_reward, exporation_rate, top_size, top_dist, top_pred, low_reward, low_dist, low_pred)
         self.evaluate_best_agent(best_episode, best_reward)
 
 
@@ -194,10 +201,107 @@ class valueAgent(object):
         predict = (self.sess.run(self.dqn.V, feed_dict)).squeeze()
 
         ranked = np.argsort(predict)
-        low_idx = ranked[-batchsize:]
-        top_idx = ranked[0:batchsize]
+        top_idx = ranked[-batchsize:]
+        low_idx = ranked[0:batchsize]
 
         return predict, top_idx, low_idx
+
+    def log_bias_prediction(self, train_steps=0):
+        if train_steps == 0:
+            msg = ['train_steps', '', 'counts', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 
+            '', 'avg_score', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+            '', 'top_predict_value', 
+            '', 'top_y_count', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+            '', 'top_value', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+            self.logger.log(msg, logfile='bias.csv')
+
+
+        budget          = Config.EVALUATION_CLASSIFICATION_BUDGET
+        # epochs          = Config.EVALUATION_CLASSIFICATION_EPOCH
+        selection_size  = Config.EVALUATION_SELECTION_BATCHSIZE
+        train_size      = Config.EVALUATION_TRAINING_BATCHSIZE
+        iterations      = int(budget/train_size)
+        S               = np.zeros((selection_size, self.num_class+2))
+        remain_episodes = 0
+        num_imgs        = -1
+        distribution    = np.zeros((self.num_class))
+        trainSize       = 0
+
+        ntrained        = 0
+        remain_budget   = 1
+        [x_select, y_select, idx] = self.env.get_next_selection_batch(batchsize=selection_size)
+        S[:, 0:-2] = self.get_next_state_from_env(x_select)
+        S[:, -2] = remain_budget
+        S[:, -1] = remain_episodes
+        predicts, tops, lows = self.predict(S, batchsize=train_size)
+
+        y_labels = np.argmax(y_select, axis=1)
+        _, counts = np.unique(y_labels, return_counts=True)
+        avg_predicts = [np.average(predicts[y_labels == i]) for i in range(10)]
+
+        _, top_counts = np.unique(np.argmax(y_select[tops], axis=1), return_counts=True)
+        top_predict_value = predicts[tops]
+        top_predict_digit = np.argmax(y_select[tops], axis=1)
+        avg_top_predicts = [np.average(predicts[tops])]
+        top_y       = np.argmax(y_select[tops], axis=1)
+        top_y_unique, top_y_count = np.unique(top_y, return_counts=True)
+        top_predict = predicts[tops]
+        top_value   = np.zeros(10)
+        # print(top_predict)
+        for i in range(10):
+            val = top_predict[top_y == i]
+            if val.size != 0:
+                top_value = []
+
+        msg = [train_steps]
+        msg.append('')
+        msg.append('')
+        msg.extend(counts)
+        msg.append('')
+        msg.append('')
+        msg.extend(avg_predicts)
+        msg.append('')
+        print(avg_top_predicts)
+        print(top_y)
+        print(top_y_unique)
+        print(top_y_count)
+        msg.extend(avg_top_predicts)
+        msg.append('')
+        msg.append('')
+
+        raise NotImplementedError
+        msg.extend(top_y_count)
+        msg.append('')
+        msg.append('')
+        msg.extend(top_value)
+        msg.append('')
+
+
+        self.logger.log(msg, logfile='bias.csv')
+
+        # temp = np.argmax(y_select, axis=1)
+        # unique, counts = np.unique(temp, return_counts=True)
+        # for i in range(10):
+        #     print(np.average(predicts[temp == i]))
+        # print(counts)
+        # print()
+
+        # # print(tops)
+        # # print(predicts[tops])
+        # # print(np.average(predicts[tops]))
+
+        # # print(tops)
+        # # print(y_select[tops])
+        
+        # #     # print(np.average(top_predict[idx]))
+        # print()
+
+        # # print(lows)
+        # # print(predicts[lows])
+        # # print(np.average(predicts[lows]))
+        # # print()
+        # raise NotImplementedError
+
 
     def evaluate(self, isValidation=True, isStream=True, trainTop=True):
         """ Agent uses the current policy to train a new network """
@@ -226,6 +330,28 @@ class valueAgent(object):
             S[:, -2] = remain_budget
             S[:, -1] = remain_episodes
             predicts, tops, lows = self.predict(S, batchsize=train_size)
+
+            # temp = np.argmax(y_select, axis=1)
+            # unique, counts = np.unique(temp, return_counts=True)
+            # print()
+
+            # for i in range(10):
+            #     print(np.average(predicts[temp == i]))
+            # print(counts)
+            # print()
+
+            # print(tops)
+            # print(predicts[tops])
+            # print(np.average(predicts[tops]))
+            # top_unique, top_counts = np.unique(np.argmax(y_select[tops], axis=1), return_counts=True)
+            # print(np.argmax(y_select[tops], axis=1))
+            # print()
+
+            # print(lows)
+            # print(predicts[lows])
+            # print(np.average(predicts[lows]))
+            # print()
+            # raise NotImplementedError
 
             if trainTop:
                 train_idx = tops
@@ -257,9 +383,9 @@ class valueAgent(object):
         self.restore_best_network_to_train_network()
 
         for i in range(eval_eps):
-            [reward, dist, trainsize] = self.evaluate(isValidation=False)
+            [reward, dist, trainsize, pred] = self.evaluate(isValidation=False)
             reward_sum = reward_sum + reward
-            self.log_training_results(None, reward, None, trainsize, dist)
+            self.log_training_results(None, reward, None, trainsize, dist, pred)
 
         mean_reward = reward_sum/eval_eps
         print("Mean: ", mean_reward)

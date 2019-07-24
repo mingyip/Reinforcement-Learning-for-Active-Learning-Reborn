@@ -14,7 +14,7 @@ class mnist64x5_model(object):
             R = tf.placeholder(tf.float32, [None, 1])
             avg_V_ = tf.placeholder(tf.float32, [None, 1])
 
-             # Network
+            # Network
             # concat = tf.concat([s, b, e], 1)
             # fc1 = tf.layers.dense(concat, 64, tf.nn.relu)
             fc1 = tf.layers.dense(s, 128, tf.nn.relu)
