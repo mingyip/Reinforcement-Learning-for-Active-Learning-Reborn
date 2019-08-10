@@ -38,6 +38,7 @@ class valueAgent(object):
         exporation_rate         = 1.0
         exporation_decay_rate   = Config.EXPLORATION_DECAY_RATE
         validation_images       = 1500
+        is_experience_replay    = Config.USE_EXPERIENCE_REPLAY
 
         # Set array and variable
         S                       = np.zeros((selection_size, self.num_class+2))
@@ -97,10 +98,6 @@ class valueAgent(object):
                     batch_x = x_select[train_idx]
                     batch_y = y_select[train_idx]
 
-                # if iteration > 0:
-                #     pair = {"S":S_old, "select_idx":select_idx, "train_idx":train_idx, "S_":S, "R":top_reward}
-                #     self.memory.append(pair)
-
                 # Train Classification Network
                 self.train_env(batch_x, batch_y, epochs)
 
@@ -109,6 +106,10 @@ class valueAgent(object):
                 S_new[:, 0:-2] = self.get_next_state_from_env(x_new_select)
                 S_new[:, -2] = remain_new_bgt
                 S_new[:, -1] = remain_episodes
+
+                if is_experience_replay > 0:
+                    pair = {"S":S_old, "select_idx":select_idx, "train_idx":train_idx, "S_":S_new, "R":top_reward}
+                    self.memory.append(pair)
 
                 predicts_new, tops_new, _ = self.predict(S_new)
                 avg_V = np.mean(predicts_new[tops_new])
@@ -204,7 +205,7 @@ class valueAgent(object):
         top_idx = ranked[-batchsize:]
         low_idx = ranked[0:batchsize]
 
-        return predict, top_idx, low_idx
+        return predict, low_idx, top_idx
 
     def log_bias_prediction(self, train_steps=0):
         if train_steps == 0:
@@ -331,8 +332,8 @@ class valueAgent(object):
             S[:, -1] = remain_episodes
             predicts, tops, lows = self.predict(S, batchsize=train_size)
 
-            # temp = np.argmax(y_select, axis=1)
-            # unique, counts = np.unique(temp, return_counts=True)
+            temp = np.argmax(y_select, axis=1)
+            unique, counts = np.unique(temp, return_counts=True)
             # print()
 
             # for i in range(10):
