@@ -16,16 +16,22 @@ class valueAgent(object):
         self.env = env
         self.logger = logger
         # super(valueAgent, self).__init__(n_class=self.env.nclass, lr=lr, gamma=gamma, scopeName="dqn_mnist64x5")
-        self.dqn_init   = mnist64x5_model(self.env.nclass, gamma=gamma, scopeName="dqn_init")
-        self.dqn        = mnist64x5_model(self.env.nclass, gamma=gamma, scopeName="dqn_train")
-        self.dqn_best   = mnist64x5_model(self.env.nclass, gamma=gamma, scopeName="dqn_best")
-        self.memory     = []
+        self.dqn_init       = mnist64x5_model(self.env.nclass, gamma=gamma, scopeName="dqn_init")
+        self.dqn            = mnist64x5_model(self.env.nclass, gamma=gamma, scopeName="dqn_train")
+        self.dqn_best       = mnist64x5_model(self.env.nclass, gamma=gamma, scopeName="dqn_best")
+        self.memory         = []
+        self.log_list       = []
+        self.best_reward    = -1
+        self.best_episode   = -1
 
     def train(self):
         """ Reinforcement Learning Algorithm """
         # TODO: Fix the second remain_budget and remain_episodes bug.
         # DONE:  avg should move the gpu to calulate
         # TODO: What about the terminal state. I dont get the K+1 state. How do I store the S, S_new pair.
+        # TODO: Re-implement experience replay
+        # TODO: Re-implement target network
+        # TODO: Re-implement early stop and late start
  
         # Set Constant
         budget                  = Config.CLASSIFICATION_BUDGET
@@ -47,27 +53,14 @@ class valueAgent(object):
         last_remain_budget      = None
         last_remain_episodes    = None
         last_status             = np.zeros((selection_size, self.num_class+2))
-        best_reward             = -1
-        best_episode            = -1
         train_steps             = 0
 
-        # self.logger.log(["Episode", "Accuracy", "Train size", "Exporation Rate", "Dist", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, None], newline=True)
         self.logger.log(["Episode", "Accuracy", "Train size", "Exporation Rate", "Top_dist", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, "Top_pred", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, "", "low Accuracy", "low_dist", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, "low_pred", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ], newline=True)
         for episode in range(episodes):
             self.begin_episode()
-            [top_reward, top_dist, top_size, top_pred] = self.evaluate(isStream=True, trainTop=True)
-            [low_reward, low_dist, low_size, low_pred] = self.evaluate(isStream=True, trainTop=False)
-            self.log_training_results(episode, top_reward, exporation_rate, top_size, top_dist, top_pred, low_reward, low_dist, low_pred)
+            self.evaluate_agent(episode, exporation_rate, isValidation=True, isStream=True, evalLow=True)
 
             for iteration in range(int(budget/train_size)):
-                # self.log_bias_prediction(train_steps)
-
-                # print(int(budget/train_size))
-                # print(train_end_at)
-                # raise 
-                # Stop training if >= train end
-                # if iteration >= train_end_at:
-                #     break
 
                 ntrained        = iteration * train_size
                 remain_budget   = (budget - ntrained) / budget
@@ -107,40 +100,19 @@ class valueAgent(object):
                 S_new[:, -2] = remain_new_bgt
                 S_new[:, -1] = remain_episodes
 
-                if is_experience_replay > 0:
-                    pair = {"S":S_old, "select_idx":select_idx, "train_idx":train_idx, "S_":S_new, "R":top_reward}
-                    self.memory.append(pair)
-
                 predicts_new, tops_new, _ = self.predict(S_new)
                 avg_V = np.mean(predicts_new[tops_new])
                 reward = self.get_validation_accuracy(nImages=validation_images)
-
-                # Skip training if < train start
-                # if iteration <  train_start_at: 
-                #     continue
 
                 self.train_agent(reward, S[train_idx], avg_V)
                 train_steps = train_steps + 1
                 print("Eps:", episode, " Iter:", iteration, " Reward:", reward, end="\r")
 
-            # [top_reward, top_dist, top_size, top_pred] = self.evaluate(isStream=True, trainTop=True)
-            # [low_reward, low_dist, low_size, low_pred] = self.evaluate(isStream=True, trainTop=False)
-            # self.log_training_results(episode, top_reward, exporation_rate, top_size, top_dist, top_pred, low_reward, low_dist, low_pred)
-
-            if top_reward > best_reward:
-                best_reward = top_reward
-                best_episode = episode
-                self.store_best_network_var()
-
             if exporation_rate > 0:
                 exporation_rate -= exporation_decay_rate
 
-
-        [top_reward, top_dist, top_size, top_pred] = self.evaluate(isStream=True, trainTop=True)
-        [low_reward, low_dist, low_size, low_pred] = self.evaluate(isStream=True, trainTop=False)
-        self.log_training_results(episode, top_reward, exporation_rate, top_size, top_dist, top_pred, low_reward, low_dist, low_pred)
+        self.evaluate_agent(episodes, exporation_rate, isValidation=True, isStream=True, evalLow=True)
         self.evaluate_best_agent(best_episode, best_reward)
-
 
     def begin_game(self):
         """ Reset the agent in the game """
@@ -205,7 +177,7 @@ class valueAgent(object):
         top_idx = ranked[-batchsize:]
         low_idx = ranked[0:batchsize]
 
-        return predict, low_idx, top_idx
+        return predict, top_idx, low_idx
 
     def log_bias_prediction(self, train_steps=0):
         if train_steps == 0:
@@ -270,7 +242,6 @@ class valueAgent(object):
         msg.append('')
         msg.append('')
 
-        raise NotImplementedError
         msg.extend(top_y_count)
         msg.append('')
         msg.append('')
@@ -280,29 +251,31 @@ class valueAgent(object):
 
         self.logger.log(msg, logfile='bias.csv')
 
-        # temp = np.argmax(y_select, axis=1)
-        # unique, counts = np.unique(temp, return_counts=True)
-        # for i in range(10):
-        #     print(np.average(predicts[temp == i]))
-        # print(counts)
-        # print()
+    def evaluate_agent(self, episode, exp_rate, isValidation=True, isStream=True, evalLow=False):
 
-        # # print(tops)
-        # # print(predicts[tops])
-        # # print(np.average(predicts[tops]))
+        low_reward = low_dist = low_size = low_pred = None
+        [top_reward, top_dist, top_size, top_pred] = self.evaluate(isStream=True, trainTop=True)
+        if evalLow:
+            [low_reward, low_dist, low_size, low_pred] = self.evaluate(isStream=True, trainTop=False)
 
-        # # print(tops)
-        # # print(y_select[tops])
-        
-        # #     # print(np.average(top_predict[idx]))
-        # print()
+        self.log_list.append({
+            "episode":      episode,
+            "top_reward":   top_reward,
+            "exp_rate":     exp_rate,
+            "top_size":     top_size,
+            "top_dist":     top_dist,
+            "top_pred":     top_pred,
+            "low_reward":   low_reward,
+            "low_dist":     low_dist,
+            "low_pred":     low_pred
+        })
 
-        # # print(lows)
-        # # print(predicts[lows])
-        # # print(np.average(predicts[lows]))
-        # # print()
-        # raise NotImplementedError
+        if top_reward > self.best_reward:
+            self.best_reward = top_reward
+            self.best_episode = episode
+        self.store_best_network_var()
 
+        self.log_training_results(episode, top_reward, exp_rate, top_size, top_dist, top_pred, low_reward, low_dist, low_pred)
 
     def evaluate(self, isValidation=True, isStream=True, trainTop=True):
         """ Agent uses the current policy to train a new network """
@@ -319,8 +292,6 @@ class valueAgent(object):
         trainSize       = 0
 
         self.reset_network()
-        # reward = self.get_validation_accuracy(num_imgs)
-        # print("Reward: ", reward, "                          ", end='\r')
         for iteration in range(iterations):
 
             ntrained        = iteration * train_size
@@ -332,33 +303,10 @@ class valueAgent(object):
             S[:, -1] = remain_episodes
             predicts, tops, lows = self.predict(S, batchsize=train_size)
 
-            temp = np.argmax(y_select, axis=1)
-            unique, counts = np.unique(temp, return_counts=True)
-            # print()
+            # temp = np.argmax(y_select, axis=1)
+            # unique, counts = np.unique(temp, return_counts=True)
 
-            # for i in range(10):
-            #     print(np.average(predicts[temp == i]))
-            # print(counts)
-            # print()
-
-            # print(tops)
-            # print(predicts[tops])
-            # print(np.average(predicts[tops]))
-            # top_unique, top_counts = np.unique(np.argmax(y_select[tops], axis=1), return_counts=True)
-            # print(np.argmax(y_select[tops], axis=1))
-            # print()
-
-            # print(lows)
-            # print(predicts[lows])
-            # print(np.average(predicts[lows]))
-            # print()
-            # raise NotImplementedError
-
-            if trainTop:
-                train_idx = tops
-            else:
-                train_idx = lows
-
+            train_idx = tops if trainTop else lows
             batch_x = x_select[train_idx]
             batch_y = y_select[train_idx]
             trainSize = trainSize + len(train_idx)
@@ -378,6 +326,7 @@ class valueAgent(object):
 
         eval_eps   = Config.EVALUATION_EPISODES
         reward_sum = 0
+        log_list = []
 
         print("Evaluate The Best Network with Test data: episode ", best_episode, " reward ", best_reward)
         self.logger.log(["Evaluate The Best Network with Test data:", "Episode", best_episode, "Accuracy", best_reward], newline=True)
@@ -386,6 +335,14 @@ class valueAgent(object):
         for i in range(eval_eps):
             [reward, dist, trainsize, pred] = self.evaluate(isValidation=False)
             reward_sum = reward_sum + reward
+            log_list.append({
+                "episode":      None,
+                "reward":       reward,
+                "exp_rate":     None,
+                "trainsize":    trainsize,
+                "distribution": dist,
+                "prediction":   pred
+            })
             self.log_training_results(None, reward, None, trainsize, dist, pred)
 
         mean_reward = reward_sum/eval_eps
@@ -430,7 +387,6 @@ class valueAgent(object):
             msg.extend(low_pred)
 
         self.logger.log(msg)
-
 
     def store_network_var(self):
         """ Store network variables so that later we can re-init the network """
