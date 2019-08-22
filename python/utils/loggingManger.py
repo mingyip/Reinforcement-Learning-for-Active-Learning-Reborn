@@ -90,7 +90,9 @@ class loggingManger(object):
             writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
             if newline:
                 writer.writerow('')
-            writer.writerow(msg)
+
+            for log in msg:
+                writer.writerow(log)
 
     def move_finished_result(self):
         """ Move finished result to finish folder """

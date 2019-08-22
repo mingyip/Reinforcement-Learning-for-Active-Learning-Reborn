@@ -33,7 +33,7 @@ def main():
     logger = loggingManger()
     sess = tf.Session()
     cnn_env = mnist_env(sess, lr=1e-4)
-    
+                        
     agent_type = Config.AGENT_TYPE
     if agent_type == "valueAgent":
         agent = valueAgent(sess, cnn_env, logger, lr=1e-3, gamma=0.9)
@@ -54,7 +54,7 @@ def main():
     done = time.time()
     elapsed = done - start
     print(elapsed)
-    logger.log(["Time elapsed", elapsed])
+    logger.log([["Time elapsed", elapsed]])
     logger.move_finished_result()
 
 if __name__ == '__main__':
