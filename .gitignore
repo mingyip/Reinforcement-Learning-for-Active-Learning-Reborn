@@ -4,3 +4,7 @@ configs/
 
 # Python Files #
 *.pyc
+
+python/\.vscode/
+
+*.prof
