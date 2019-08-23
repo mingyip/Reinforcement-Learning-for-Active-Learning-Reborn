@@ -16,6 +16,7 @@ import os
 from learningai.agent.bestVsecondAgent import bestVsecondAgent as bvsAgent
 from learningai.agent.randomAgent import randomAgent
 from learningai.agent.valueAgent import valueAgent
+from learningai.env.cifar_env import cifar_env
 from learningai.env.mnist_env import mnist_env
 from utils.loggingManger import loggingManger
 from config import Config
@@ -32,7 +33,9 @@ def main():
 
     logger = loggingManger()
     sess = tf.Session()
-    cnn_env = mnist_env(sess, lr=1e-4)
+
+    cnn_env = cifar_env(sess, lr=1e-4)
+    # cnn_env = mnist_env(sess, lr=1e-4)
                         
     agent_type = Config.AGENT_TYPE
     if agent_type == "valueAgent":
