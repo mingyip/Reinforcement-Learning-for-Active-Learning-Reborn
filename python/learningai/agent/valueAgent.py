@@ -53,7 +53,6 @@ class valueAgent(object):
         last_remain_budget      = None
         last_remain_episodes    = None
         last_status             = np.zeros((selection_size, self.num_class+2))
-        train_steps             = 0
 
         AgentLogger.log_training_init(self.logger)
         for episode in range(episodes):
@@ -94,7 +93,6 @@ class valueAgent(object):
                 reward = self.get_environment_accuracy(nImages=validation_images)
 
                 self.train_agent(reward, S[train_idx], avg_V)
-                train_steps = train_steps + 1
                 print("Eps:", episode, " Iter:", iteration, " Reward:", reward, end="\r")
 
             self.write_all_logs()
