@@ -56,7 +56,7 @@ class loggingManger(object):
             writer.writerow(['Selection Batchsize', selection_batchsize, '', 'Evaluation Selection Batchsize', Config.EVALUATION_SELECTION_BATCHSIZE])
             writer.writerow(['Train Batchsize', training_batchsize, '', 'Evaluation Train Batchsize', Config.EVALUATION_TRAINING_BATCHSIZE])
             writer.writerow(['Epoch', epochs, '', 'Evaluation Epoch', Config.EVALUATION_CLASSIFICATION_EPOCH])
-            writer.writerow(['Exploration Decay Rate', Config.EXPLORATION_DECAY_RATE])
+            writer.writerow(['Exploration Decay Rate', Config.EXPLORATION_DECAY_RATE, '', 'Start Rank', Config.EVALUATION_START_RANK])
 
         with open(self.outpath_path+'/bias.csv', mode='w') as file:
             writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)

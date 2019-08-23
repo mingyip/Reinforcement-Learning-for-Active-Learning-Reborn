@@ -57,11 +57,10 @@ class valueAgent(object):
 
         AgentLogger.log_training_init(self.logger)
         for episode in range(episodes):
+            self.evaluate_agent(episode, exporation_rate)
             self.begin_episode()
-            self.evaluate_agent(episode, exporation_rate, evalLow=True)
 
             for iteration in range(int(budget/train_size)):
-
                 ntrained        = iteration * train_size
                 remain_budget   = (budget - ntrained) / budget
                 remain_new_bgt  = max(budget-ntrained-1, 0) / budget
@@ -74,10 +73,10 @@ class valueAgent(object):
                 S[:, -1] = remain_episodes
 
                 # Exporation vs Exploitation
-                if (np.random.rand(1)[0]>exporation_rate):
-                    predicts, train_idx, _ = self.predict(S)
-                else:
-                    train_idx = np.arange(train_size)
+                # if (np.random.rand(1)[0]>exporation_rate):
+                #     predicts, _, train_idx, _ = self.predict(S)
+                # else:
+                train_idx = np.arange(train_size)
 
                 # Train Classification Network
                 batch_x = x_select[train_idx]
@@ -90,7 +89,7 @@ class valueAgent(object):
                 S_new[:, -2] = remain_new_bgt
                 S_new[:, -1] = remain_episodes
 
-                predicts_new, tops_new, _ = self.predict(S_new)
+                predicts_new, tops_new, _, _ = self.predict(S_new)
                 avg_V = np.mean(predicts_new[tops_new])
                 reward = self.get_environment_accuracy(nImages=validation_images)
 
@@ -103,7 +102,7 @@ class valueAgent(object):
             if exporation_rate > 0:
                 exporation_rate -= exporation_decay_rate
 
-        self.evaluate_agent(episodes, exporation_rate, evalLow=True)
+        self.evaluate_agent(episodes, exporation_rate)
         self.evaluate_best_agent()
 
     def begin_game(self):
@@ -154,9 +153,7 @@ class valueAgent(object):
 
         if batchsize is None:
             batchsize = Config.TRAINING_BATCHSIZE
-
-        # budget = np.full((Config.SELECTION_BATCHSIZE, 1), remainBudget, dtype=float)
-        # episode = np.full((Config.SELECTION_BATCHSIZE, 1), remainEpisode, dtype=float)
+    
         feed_dict = {self.dqn.s: state}
         predict = (self.sess.run(self.dqn.V, feed_dict)).squeeze()
 
@@ -164,7 +161,7 @@ class valueAgent(object):
         top_idx = ranked[-batchsize:]
         low_idx = ranked[0:batchsize]
 
-        return predict, top_idx, low_idx
+        return predict, top_idx, low_idx, ranked
 
     def reinitialize_log_batch(self):
         self.logs = []
@@ -175,12 +172,12 @@ class valueAgent(object):
     def write_all_logs(self):
         AgentLogger.log_training_results(self.logs, self.logger)
 
-    def evaluate_agent(self, episode, exp_rate, isValidation=True, isStream=True, evalLow=False):
+    def evaluate_agent(self, episode, exp_rate, isValidation=True, isStream=True):
 
         low_reward = low_dist = low_size = low_pred = None
-        [top_reward, top_dist, top_size, top_pred] = self.evaluate(isStream=True, trainTop=True)
-        if evalLow:
-            [low_reward, low_dist, low_size, low_pred] = self.evaluate(isStream=True, trainTop=False)
+        [top_reward, top_dist, top_size, top_pred] = self.evaluate(isStream=True)
+        # if evalLow:
+        #     [low_reward, low_dist, low_size, low_pred] = self.evaluate(isStream=True, trainTop=False)
 
         log = {
             "episode":      episode,
@@ -203,19 +200,21 @@ class valueAgent(object):
 
         AgentLogger.print_trianing_results(log)
 
-    def evaluate(self, isValidation=True, isStream=True, trainTop=True):
+    def evaluate(self, isValidation=True, isStream=True):
         """ Agent uses the current policy to train a new network """
         """ Both stream and pool based learning """
-        budget          = Config.EVALUATION_CLASSIFICATION_BUDGET
-        epochs          = Config.EVALUATION_CLASSIFICATION_EPOCH
-        selection_size  = Config.EVALUATION_SELECTION_BATCHSIZE
-        train_size      = Config.EVALUATION_TRAINING_BATCHSIZE
-        iterations      = int(budget/train_size)
-        S               = np.zeros((selection_size, self.num_class+2))
-        remain_episodes = 0
-        num_imgs        = -1
-        distribution    = np.zeros((self.num_class))
-        trainSize       = 0
+        """ Here we create re-initialize the env model and train it """
+        budget              = Config.EVALUATION_CLASSIFICATION_BUDGET
+        epochs              = Config.EVALUATION_CLASSIFICATION_EPOCH
+        selection_size      = Config.EVALUATION_SELECTION_BATCHSIZE
+        train_size          = Config.EVALUATION_TRAINING_BATCHSIZE
+        start_rank          = Config.EVALUATION_START_RANK
+        iterations          = int(budget/train_size)
+        S                   = np.zeros((selection_size, self.num_class+2))
+        remain_episodes     = 0
+        num_imgs            = -1
+        distribution        = np.zeros((self.num_class))
+        total_train_size    = 0
 
         self.reset_network()
         for iteration in range(iterations):
@@ -227,25 +226,20 @@ class valueAgent(object):
             S[:, 0:-2] = self.get_next_state_from_env(x_select)
             S[:, -2] = remain_budget
             S[:, -1] = remain_episodes
-            predicts, tops, lows = self.predict(S, batchsize=train_size)
+            predicts, tops, lows, ranked = self.predict(S, batchsize=train_size)
 
             # temp = np.argmax(y_select, axis=1)
             # unique, counts = np.unique(temp, return_counts=True)
 
-            train_idx = tops if trainTop else lows
+            train_idx = ranked[start_rank : start_rank+train_size]
             batch_x = x_select[train_idx]
             batch_y = y_select[train_idx]
-            trainSize = trainSize + len(train_idx)
+            total_train_size = total_train_size + len(train_idx)
             distribution = distribution + np.sum(batch_y, axis=0)
-
             self.train_env(batch_x, batch_y, epochs)
 
-        
         reward = self.get_environment_accuracy(num_imgs, isValidation)
-        else:
-            reward = self.get_test_accuracy(num_imgs)
-
-        return [reward, distribution, trainSize, predicts[train_idx]]
+        return [reward, distribution, total_train_size, predicts[train_idx]]
 
     def evaluate_best_agent(self):
         """ Evaluate the best agent """
