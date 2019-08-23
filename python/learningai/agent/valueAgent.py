@@ -92,14 +92,14 @@ class valueAgent(object):
 
                 predicts_new, tops_new, _ = self.predict(S_new)
                 avg_V = np.mean(predicts_new[tops_new])
-                reward = self.get_validation_accuracy(nImages=validation_images)
+                reward = self.get_environment_accuracy(nImages=validation_images)
 
                 self.train_agent(reward, S[train_idx], avg_V)
                 train_steps = train_steps + 1
                 print("Eps:", episode, " Iter:", iteration, " Reward:", reward, end="\r")
 
             self.write_all_logs()
-            self.reinit_all_logs()
+            self.reinitialize_log_batch()
             if exporation_rate > 0:
                 exporation_rate -= exporation_decay_rate
 
@@ -127,13 +127,13 @@ class valueAgent(object):
         y = self.env.get_output_probability(imgs)
         return y
 
-    def get_validation_accuracy(self, nImages=-1):
-        """ Get validation reward from the environment """
-        return self.env.get_validation_accuracy(nImages)
-
-    def get_test_accuracy(self, nImages=-1):
-        """ Get test reward from the environment """
-        return self.env.get_test_accuracy(nImages)
+    def get_environment_accuracy(self, nImages=-1, isValidation=True):
+        """ Get reward from the environment """
+        if isValidation:
+            reward = self.env.get_validation_accuracy(nImages)
+        else:
+            reward = self.env.get_test_accuracy(nImages)
+        return reward
 
     def train_agent(self, reward, state, V_new):
         """ Train agent with the TD-error """
@@ -166,7 +166,7 @@ class valueAgent(object):
 
         return predict, top_idx, low_idx
 
-    def reinit_all_logs(self):
+    def reinitialize_log_batch(self):
         self.logs = []
 
     def print_all_logs(self):
@@ -240,8 +240,8 @@ class valueAgent(object):
 
             self.train_env(batch_x, batch_y, epochs)
 
-        if isValidation:
-            reward = self.get_validation_accuracy(num_imgs)
+        
+        reward = self.get_environment_accuracy(num_imgs, isValidation)
         else:
             reward = self.get_test_accuracy(num_imgs)
 
