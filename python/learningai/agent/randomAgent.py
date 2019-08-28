@@ -1,6 +1,7 @@
 import numpy as np
 
 
+from learningai.utils.AgentLogger import AgentLogger
 from learningai.agent.model.mnist64x5 import mnist64x5_model
 from config import Config
 
@@ -31,8 +32,9 @@ class randomAgent(object):
         dist            = 0
         reward_sum      = 0
         train_idx       = np.arange(train_size)
+        log_list        = []
 
-        self.logger.log(["Episode", "Accuracy", "Train size", "Dist", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, None], newline=True)
+        # self.logger.log(["Episode", "Accuracy", "Train size", "Dist", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, None], newline=True)
         for episode in range(episodes):
             self.begin_episode()
             dist    = 0 
@@ -52,14 +54,22 @@ class randomAgent(object):
                 print("Eps:", episode, " Iter:", iteration, " Reward:", reward, end="\r")
             reward = self.get_test_accuracy()
             reward_sum = reward_sum + reward
-            print(str.format('Eps:{0:3.0f} R:{1:.4f} Size: {2:3.0f} ', episode, reward, counter), end='')
-            print(str.format('dist:{0:3.0f} {1:3.0f} {2:3.0f} {3:3.0f} {4:3.0f} {5:3.0f} {6:3.0f} {7:3.0f} {8:3.0f} {9:3.0f}', dist[0], dist[1], dist[2], dist[3], dist[4], dist[5], dist[6], dist[7], dist[8], dist[9]))
-            msg = [episode, reward, counter, '']
-            msg.extend(dist)
-            self.logger.log(msg)
+            # print(str.format('Eps:{0:3.0f} R:{1:.4f} Size: {2:3.0f} ', episode, reward, counter), end='')
+            # print(str.format('dist:{0:3.0f} {1:3.0f} {2:3.0f} {3:3.0f} {4:3.0f} {5:3.0f} {6:3.0f} {7:3.0f} {8:3.0f} {9:3.0f}', dist[0], dist[1], dist[2], dist[3], dist[4], dist[5], dist[6], dist[7], dist[8], dist[9]))
+            log = {
+                "episode":      episode,
+                "top_reward":   reward,
+                "exp_rate":     None,
+                "trainsize":    counter,
+                "top_dist":     dist,
+                "top_pred":     None
+            }
+            log_list.append(log)
+            AgentLogger.print_trianing_results(log)
 
-        print("Mean: ", reward_sum/episodes)
-        self.logger.log(["Mean", reward_sum/episodes])
+        mean_reward = reward_sum/episodes
+        print("Mean: ", mean_reward)
+        AgentLogger.log_evaluation_results(log_list, self.logger, -1, -1, mean_reward)
 
     def begin_episode(self):
         """ Reset the classificaiton network """

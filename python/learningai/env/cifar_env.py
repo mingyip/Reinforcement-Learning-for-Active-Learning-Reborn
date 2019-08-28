@@ -133,10 +133,10 @@ class cifar_env(object):
         return self.cnn.model.predict(x_train)
 
     def get_validation_accuracy(self, nImages=-1):
-        return self.cnn.model.evaluate(self.x_val, self.y_val, verbose=0)[1]
+        return self.cnn.model.evaluate(self.x_val[0:nImages], self.y_val[0:nImages], verbose=0)[1]
 
     def get_test_accuracy(self, nImages=-1):
-        return self.cnn.model.evaluate(self.x_test, self.y_test, verbose=0)[1]
+        return self.cnn.model.evaluate(self.x_test[0:nImages], self.y_test[0:nImages], verbose=0)[1]
 
     def storeNetworkVar(self):
         """ Store network variables so that later we can re-init the network """
