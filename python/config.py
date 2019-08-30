@@ -34,6 +34,8 @@ class Config:
     EVALUATION_SELECTION_BATCHSIZE     = 100
     EVALUATION_TRAINING_BATCHSIZE      = 10
     EVALUATION_START_RANK              = 0
+    # Stream vs Pool base
+    EVALUATION_IS_STREAM=False
 
 
     # SEED

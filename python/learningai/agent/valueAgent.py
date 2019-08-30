@@ -144,6 +144,10 @@ class valueAgent(object):
         """ Train classification network with dataset """
         self.env.train_env(x_train, y_train, epoch)
 
+    def train_env_with_idx(self, idx, epoch):
+        """ Train classification network with dataset idx """
+        self.env.train_env_with_idx(idx, epoch)
+
     def predict(self, state, batchsize=None):
         """ Agent predicts the state-action value (accuracy) """
         # TODO: function predict write log directly to the result.log
@@ -151,7 +155,7 @@ class valueAgent(object):
 
         if batchsize is None:
             batchsize = Config.TRAINING_BATCHSIZE
-    
+
         feed_dict = {self.dqn.s: state}
         predict = (self.sess.run(self.dqn.V, feed_dict)).squeeze()
 
@@ -170,10 +174,10 @@ class valueAgent(object):
     def write_all_logs(self):
         AgentLogger.log_training_results(self.logs, self.logger)
 
-    def evaluate_agent(self, episode, exp_rate, isValidation=True, isStream=True):
+    def evaluate_agent(self, episode, exp_rate, isValidation=True):
 
         low_reward = low_dist = low_size = low_pred = None
-        [top_reward, top_dist, top_size, top_pred] = self.evaluate(isStream=True)
+        [top_reward, top_dist, top_size, top_pred] = self.evaluate()
         # if evalLow:
         #     [low_reward, low_dist, low_size, low_pred] = self.evaluate(isStream=True, trainTop=False)
 
@@ -198,7 +202,7 @@ class valueAgent(object):
 
         AgentLogger.print_trianing_results(log)
 
-    def evaluate(self, isValidation=True, isStream=True):
+    def evaluate(self, isValidation=True):
         """ Agent uses the current policy to train a new network """
         """ Both stream and pool based learning """
         """ Here we create re-initialize the env model and train it """
@@ -207,12 +211,14 @@ class valueAgent(object):
         selection_size      = Config.EVALUATION_SELECTION_BATCHSIZE
         train_size          = Config.EVALUATION_TRAINING_BATCHSIZE
         start_rank          = Config.EVALUATION_START_RANK
+        isStream            = Config.EVALUATION_IS_STREAM
         iterations          = int(budget/train_size)
         S                   = np.zeros((selection_size, self.num_class+2))
         remain_episodes     = 0
         num_imgs            = -1
         distribution        = np.zeros((self.num_class))
         total_train_size    = 0
+        batches_idx         = []
 
         self.reset_network()
         for iteration in range(iterations):
@@ -235,6 +241,13 @@ class valueAgent(object):
             total_train_size = total_train_size + len(train_idx)
             distribution = distribution + np.sum(batch_y, axis=0)
             self.train_env(batch_x, batch_y, epochs)
+
+            batches_idx.extend(idx[train_idx])
+
+        if not isStream:
+            print("Use Pool Base Selection                          ", end="\r")
+            self.reset_network()
+            self.train_env_with_idx(batches_idx, epochs)
 
         reward = self.get_environment_accuracy(num_imgs, isValidation)
         return [reward, distribution, total_train_size, predicts[train_idx]]

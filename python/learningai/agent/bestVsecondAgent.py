@@ -24,6 +24,7 @@ class bestVsecondAgent(object):
         epochs          = Config.EVALUATION_CLASSIFICATION_EPOCH
         selection_size  = Config.EVALUATION_SELECTION_BATCHSIZE
         train_size      = Config.EVALUATION_TRAINING_BATCHSIZE
+        isStream        = Config.EVALUATION_IS_STREAM
         validation_imgs = 1500
         test_imgs       = -1
 
@@ -37,8 +38,9 @@ class bestVsecondAgent(object):
         # AgentLogger.log_training_init(self.logger)
         for episode in range(episodes):
             self.begin_episode()
-            dist    = 0 
-            counter = 0
+            dist        = 0 
+            counter     = 0
+            batches_idx = []
 
             for iteration in range(int(budget/train_size)):
                 ntrained        = iteration * train_size
@@ -57,6 +59,14 @@ class bestVsecondAgent(object):
 
                 reward = self.get_validation_accuracy(1000)
                 print("Eps:", episode, " Iter:", iteration, " Reward:", reward, end="\r")
+
+                batches_idx.extend(idx[train_idx])
+
+            if not isStream:
+                print("Use Pool Base Selection                          ", end="\r")
+                self.reset_network()
+                self.train_env_with_idx(batches_idx, epochs)
+
             reward = self.get_test_accuracy()
             reward_sum = reward_sum + reward
             # print(str.format('Eps:{0:3.0f} R:{1:.4f} Size: {2:3.0f} ', episode, reward, counter), end='')
@@ -70,7 +80,6 @@ class bestVsecondAgent(object):
                 "top_pred":     None
             }
             log_list.append(log)
-
             AgentLogger.print_trianing_results(log)
 
             
@@ -121,6 +130,10 @@ class bestVsecondAgent(object):
     def train_env(self, x_train, y_train, epoch):
         """ Train classification network with dataset """
         self.env.train_env(x_train, y_train, epoch)
+
+    def train_env_with_idx(self, idx, epoch):
+        """ Train classification network with dataset idx """
+        self.env.train_env_with_idx(idx, epoch)
 
     def get_validation_accuracy(self, nImages=-1):
         """ Get validation reward from the environment """

@@ -69,6 +69,9 @@ class mnist_env(object):
         for i in range(epoch):
             self.sess.run(self.cnn.train_op, feed_dict)
 
+    def train_env_with_idx(self, idx, epoch):
+        self.train_env(self.x_train[idx], self.y_train[idx], epoch)
+
     def get_next_selection_batch(self, batchsize=None, peek=False):
         """ Return the mext image batchfor selection step """
         # DONE:  After the selection is full, reshuffle the batch

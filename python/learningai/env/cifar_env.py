@@ -70,6 +70,12 @@ class cifar_env(object):
                         epochs      = epochs,
                         verbose     = 0)
 
+    def train_env_with_idx(self, idx, epochs):
+        self.cnn.model.fit(self.x_train, self.y_train, 
+                        batch_size  = 50,
+                        epochs      = epochs,
+                        verbose     = 0)
+
     def get_next_selection_batch(self, batchsize=None, peek=False):
         """ Return the mext image batchfor selection step """
         # DONE:  After the selection is full, reshuffle the batch
