@@ -21,6 +21,7 @@ class valueAgent(object):
         self.dqn_best       = mnist64x5_model(self.env.nclass, gamma=gamma, scopeName="dqn_best")
         self.memory         = []
         self.logs           = []
+        self.dist_logs      = []
         self.best_reward    = -1
         self.best_episode   = -1
 
@@ -47,12 +48,12 @@ class valueAgent(object):
         is_experience_replay    = Config.USE_EXPERIENCE_REPLAY
 
         # Set array and variable
-        S                       = np.zeros((selection_size, self.num_class+2))
-        S_new                   = np.zeros((selection_size, self.num_class+2))
-        S_old                   = np.zeros((selection_size, self.num_class+2))
+        S                       = np.zeros((selection_size, self.num_class+12))
+        S_new                   = np.zeros((selection_size, self.num_class+12))
+        S_old                   = np.zeros((selection_size, self.num_class+12))
         last_remain_budget      = None
         last_remain_episodes    = None
-        last_status             = np.zeros((selection_size, self.num_class+2))
+        last_status             = np.zeros((selection_size, self.num_class+12))
 
         AgentLogger.log_training_init(self.logger)
         for episode in range(episodes):
@@ -67,9 +68,10 @@ class valueAgent(object):
 
                 # Get New States
                 [x_select, y_select, select_idx] = self.env.get_next_selection_batch()
-                S[:, 0:-2] = self.get_next_state_from_env(x_select)
-                S[:, -2] = remain_budget
-                S[:, -1] = remain_episodes
+                S[:, 0:-12]     = self.get_next_state_from_env(x_select)
+                S[:, -12:-2]    = y_select
+                S[:, -2]        = remain_budget
+                S[:, -1]        = remain_episodes
 
                 # Exporation vs Exploitation
                 # if (np.random.rand(1)[0]>exporation_rate):
@@ -84,9 +86,10 @@ class valueAgent(object):
 
                 # Train DQN Network
                 [x_new_select, y_new_select, select_idx] = self.env.get_next_selection_batch(peek=True)
-                S_new[:, 0:-2] = self.get_next_state_from_env(x_new_select)
-                S_new[:, -2] = remain_new_bgt
-                S_new[:, -1] = remain_episodes
+                S_new[:, 0:-12]     = self.get_next_state_from_env(x_new_select)
+                S_new[:, -12:-2]    = y_new_select
+                S_new[:, -2]        = remain_budget
+                S_new[:, -1]        = remain_episodes
 
                 predicts_new, tops_new, _, _ = self.predict(S_new)
                 avg_V = np.mean(predicts_new[tops_new])
@@ -213,7 +216,7 @@ class valueAgent(object):
         start_rank          = Config.EVALUATION_START_RANK
         isStream            = Config.EVALUATION_IS_STREAM
         iterations          = int(budget/train_size)
-        S                   = np.zeros((selection_size, self.num_class+2))
+        S                   = np.zeros((selection_size, self.num_class+12))
         remain_episodes     = 0
         num_imgs            = -1
         distribution        = np.zeros((self.num_class))
@@ -227,9 +230,10 @@ class valueAgent(object):
             remain_budget   = (budget - ntrained) / budget
 
             [x_select, y_select, idx] = self.env.get_next_selection_batch(batchsize=selection_size)
-            S[:, 0:-2] = self.get_next_state_from_env(x_select)
-            S[:, -2] = remain_budget
-            S[:, -1] = remain_episodes
+            S[:, 0:-12]     = self.get_next_state_from_env(x_select)
+            S[:, -12:-2]    = np.zeros(10)
+            S[:, -2]        = remain_budget
+            S[:, -1]        = remain_episodes
             predicts, tops, lows, ranked = self.predict(S, batchsize=train_size)
 
             # temp = np.argmax(y_select, axis=1)

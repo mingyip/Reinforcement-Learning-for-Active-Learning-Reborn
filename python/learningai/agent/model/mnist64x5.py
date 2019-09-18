@@ -8,7 +8,7 @@ class mnist64x5_model(object):
 
         with tf.variable_scope(scopeName):
             # Placeholder Input
-            s = tf.placeholder(tf.float32, [None, n_class+2])
+            s = tf.placeholder(tf.float32, [None, n_class+12])
             # b = tf.placeholder(tf.float32, [None, 1])
             # e = tf.placeholder(tf.float32, [None, 1])
             R = tf.placeholder(tf.float32, [None, 1])
