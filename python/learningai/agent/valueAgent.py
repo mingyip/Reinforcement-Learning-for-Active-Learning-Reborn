@@ -198,7 +198,7 @@ class valueAgent(object):
         if top_reward > self.best_reward:
             self.best_reward = top_reward
             self.best_episode = episode
-        self.store_best_network_var()
+            self.store_best_network_var()
 
         AgentLogger.print_trianing_results(log)
 
