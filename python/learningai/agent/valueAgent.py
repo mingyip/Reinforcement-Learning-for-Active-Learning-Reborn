@@ -219,6 +219,7 @@ class valueAgent(object):
         distribution        = np.zeros((self.num_class))
         total_train_size    = 0
         batches_idx         = []
+        index               = np.array([i for i in range(self.num_class)])
 
         self.reset_network()
         for iteration in range(iterations):
@@ -227,18 +228,25 @@ class valueAgent(object):
             remain_budget   = (budget - ntrained) / budget
 
             [x_select, y_select, idx] = self.env.get_next_selection_batch(batchsize=selection_size)
+            y_ = np.argmax(y_select, axis=1)
+
+
             S[:, 0:-2] = self.get_next_state_from_env(x_select)
             S[:, -2] = remain_budget
             S[:, -1] = remain_episodes
             predicts, tops, lows, ranked = self.predict(S, batchsize=train_size)
 
-            # temp = np.argmax(y_select, axis=1)
-            # unique, counts = np.unique(temp, return_counts=True)
 
-            train_idx = ranked[start_rank : start_rank+train_size]
+            mask    = index[:, None] == y_[None, :]
+            masked  = predicts[None, :] * mask
+            ranked  = np.argsort(masked)
+
+
+            train_idx = ranked[:, -1]
+            # train_idx = ranked[start_rank : start_rank+train_size]
             batch_x = x_select[train_idx]
             batch_y = y_select[train_idx]
-            total_train_size = total_train_size + len(train_idx)
+            total_train_size = total_train_size + 10
             distribution = distribution + np.sum(batch_y, axis=0)
             self.train_env(batch_x, batch_y, epochs)
 

@@ -11,8 +11,8 @@ class Config:
     # AGENT_TYPE = "random"
 
     # Env TYPE
-    ENV_TYPE = "cifar"
-    # ENV_TYPE = "mnist"
+    # ENV_TYPE = "cifar"
+    ENV_TYPE = "mnist"
 
     # TRANING SETTING
     AGENT_TRAINING_EPISODES = 10
@@ -25,7 +25,7 @@ class Config:
     USE_EXPERIENCE_REPLAY   = True
 
     # HYPER-PARAMETER TUNNING 
-    EXPLORATION_DECAY_RATE = 0.0025
+    EXPLORATION_DECAY_RATE = 0.0
 
     # VALIDATION SETTING
     EVALUATION_EPISODES                = 10
