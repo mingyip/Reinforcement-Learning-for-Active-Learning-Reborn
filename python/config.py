@@ -15,7 +15,7 @@ class Config:
     ENV_TYPE = "mnist"
 
     # TRANING SETTING
-    AGENT_TRAINING_EPISODES = 10
+    AGENT_TRAINING_EPISODES = 50
     CLASSIFICATION_BUDGET   = 1000
     CLASSIFICATION_EPOCH    = 10
     SELECTION_BATCHSIZE     = 100
@@ -35,7 +35,7 @@ class Config:
     EVALUATION_TRAINING_BATCHSIZE      = 10
     EVALUATION_START_RANK              = 0
     # Stream vs Pool base
-    EVALUATION_IS_STREAM=False
+    EVALUATION_IS_STREAM = True
 
 
     # SEED

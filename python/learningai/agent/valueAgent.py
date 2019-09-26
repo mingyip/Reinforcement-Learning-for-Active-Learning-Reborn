@@ -195,7 +195,7 @@ class valueAgent(object):
 
         self.logs.append(log)
 
-        if top_reward > self.best_reward:
+        if not episode == 0 and top_reward > self.best_reward:
             self.best_reward = top_reward
             self.best_episode = episode
             self.store_best_network_var()
