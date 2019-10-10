@@ -8,10 +8,10 @@ from learningai.agent.model.mnist64x5 import mnist64x5_model
 from config import Config
 
 class valueAgent(object):
-    def __init__(self, sess, env, logger, lr=1e-3, gamma=0.9, num_class=10):
+    def __init__(self, sess, env, logger, lr=1e-3, gamma=0.9):
 
         print("Create a State Value Estimation agent!")
-        self.num_class = num_class
+        self.num_class = env.nclass
         self.sess = sess
         self.env = env
         self.logger = logger

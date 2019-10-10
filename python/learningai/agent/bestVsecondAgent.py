@@ -7,10 +7,10 @@ from config import Config
 
 
 class bestVsecondAgent(object):
-    def __init__(self, sess, env, logger, num_class=10):
+    def __init__(self, sess, env, logger):
 
         print("Create a Best vs Second Best Agent!")
-        self.num_class = num_class
+        self.num_class = env.nclass
         self.sess = sess
         self.env = env
         self.logger = logger
