@@ -11,9 +11,10 @@ class Config:
     # AGENT_TYPE = "random"
 
     # Env TYPE
-    ENV_TYPE = "cifar"
+    ENV_TYPE = "emnist"
+    # ENV_TYPE = "cifar"
     # ENV_TYPE = "mnist"
-
+    
     # TRANING SETTING
     AGENT_TRAINING_EPISODES = 10
     CLASSIFICATION_BUDGET   = 1000

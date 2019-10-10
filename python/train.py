@@ -18,6 +18,7 @@ from learningai.agent.randomAgent import randomAgent
 from learningai.agent.valueAgent import valueAgent
 from learningai.env.cifar_env import cifar_env
 from learningai.env.mnist_env import mnist_env
+from learningai.env.emnist_env import emnist_env
 from utils.loggingManger import loggingManger
 from config import Config
 
@@ -41,7 +42,9 @@ def main():
     if env_type == "cifar":
         cnn_env = cifar_env(sess, lr=1e-4)
     elif env_type == "mnist":
-        cnn_env = mnist_env(sess, lr=1e-4)                        
+        cnn_env = mnist_env(sess, lr=1e-4)
+    elif env_type == "emnist":
+        cnn_env = emnist_env(sess, lr=1e-4)         
     
     if agent_type == "valueAgent":
         agent = valueAgent(sess, cnn_env, logger, lr=1e-3, gamma=0.9)
