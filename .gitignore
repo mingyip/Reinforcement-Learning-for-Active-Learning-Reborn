@@ -8,3 +8,5 @@ configs/
 python/\.vscode/
 
 *.prof
+
+.ipynb_checkpoints/
