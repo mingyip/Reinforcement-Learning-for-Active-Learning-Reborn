@@ -56,7 +56,7 @@ class valueAgent(object):
 
         AgentLogger.log_training_init(self.logger)
         for episode in range(episodes):
-            self.evaluate_agent(episode, exporation_rate)
+            self.evaluate_agent(episode, exporation_rate, isValidation=False)
             self.begin_episode()
 
             for iteration in range(int(budget/train_size)):
@@ -88,8 +88,9 @@ class valueAgent(object):
                 S_new[:, -2] = remain_new_bgt
                 S_new[:, -1] = remain_episodes
 
-                predicts_new, tops_new, _, _ = self.predict(S_new)
-                avg_V = np.mean(predicts_new[tops_new])
+                predicts_new, tops_new, lows_new, _ = self.predict(S_new)
+
+                avg_V = np.mean(predicts_new)
                 reward = self.get_environment_accuracy(nImages=validation_images)
 
                 self.train_agent(reward, S[train_idx], avg_V)
@@ -100,7 +101,7 @@ class valueAgent(object):
             if exporation_rate > 0:
                 exporation_rate -= exporation_decay_rate
 
-        self.evaluate_agent(episodes, exporation_rate)
+        self.evaluate_agent(episodes, exporation_rate, isValidation=False)
         self.evaluate_best_agent()
 
     def begin_game(self):
@@ -177,7 +178,7 @@ class valueAgent(object):
     def evaluate_agent(self, episode, exp_rate, isValidation=True):
 
         low_reward = low_dist = low_size = low_pred = None
-        [top_reward, top_dist, top_size, top_pred] = self.evaluate()
+        [top_reward, top_dist, top_size, top_pred] = self.evaluate(isValidation)
         # if evalLow:
         #     [low_reward, low_dist, low_size, low_pred] = self.evaluate(isStream=True, trainTop=False)
 
