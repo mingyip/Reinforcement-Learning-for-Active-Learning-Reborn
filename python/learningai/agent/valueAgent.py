@@ -26,7 +26,7 @@ class valueAgent(object):
 
     def train(self):
         """ Reinforcement Learning Algorithm """
-        # TODO: Fix the second remain_budget and remain_episodes bug.
+        # DONE:  Fix the second remain_budget and remain_episodes bug.
         # DONE:  avg should move the gpu to calulate
         # TODO: What about the terminal state. I dont get the K+1 state. How do I store the S, S_new pair.
         # TODO: Re-implement experience replay
@@ -67,9 +67,7 @@ class valueAgent(object):
 
                 # Get New States
                 [x_select, y_select, select_idx] = self.env.get_next_selection_batch()
-                S[:, 0:-2] = self.get_next_state_from_env(x_select)
-                S[:, -2] = remain_budget
-                S[:, -1] = remain_episodes
+                S = np.append(self.get_next_state_from_env(x_select), [[remain_budget, remain_episodes]]*selection_size, axis=1)
 
                 # Exporation vs Exploitation
                 # if (np.random.rand(1)[0]>exporation_rate):
@@ -84,10 +82,7 @@ class valueAgent(object):
 
                 # Train DQN Network
                 [x_new_select, y_new_select, select_idx] = self.env.get_next_selection_batch(peek=True)
-                S_new[:, 0:-2] = self.get_next_state_from_env(x_new_select)
-                S_new[:, -2] = remain_new_bgt
-                S_new[:, -1] = remain_episodes
-
+                S_new = np.append(self.get_next_state_from_env(x_new_select), [[remain_new_bgt, remain_episodes]]*selection_size, axis=1)
                 predicts_new, tops_new, lows_new, _ = self.predict(S_new)
 
                 avg_V = np.mean(predicts_new)
@@ -228,9 +223,7 @@ class valueAgent(object):
             remain_budget   = (budget - ntrained) / budget
 
             [x_select, y_select, idx] = self.env.get_next_selection_batch(batchsize=selection_size)
-            S[:, 0:-2] = self.get_next_state_from_env(x_select)
-            S[:, -2] = remain_budget
-            S[:, -1] = remain_episodes
+            S = np.append(self.get_next_state_from_env(x_select), [[remain_budget, remain_episodes]]*selection_size, axis=1)
             predicts, tops, lows, ranked = self.predict(S, batchsize=train_size)
 
             # temp = np.argmax(y_select, axis=1)
