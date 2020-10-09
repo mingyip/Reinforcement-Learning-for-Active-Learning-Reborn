@@ -92,3 +92,16 @@ Available: http://yann.lecun.com/exdb/mnist, 2, 2010.
 </p>
 
 <p> [3] Gregory Cohen, Saeed Afshar, Jonathan Tapson, and Andre Van Schaik. Emnist: Ex-tending mnist to handwritten letters.2017 International Joint Conference on Neural Networks (IJCNN), 2017 </p>
+
+
+If you find this implementation useful and want to cite/mention this page, here is a bibtex citation:
+
+```bibtex
+@misc{Idelbayev18a,
+  author       = "Ming Yip Cheung",
+  title        = "Reinforcement Learning for Active Learning",
+  howpublished = "\url{https://github.com/mingyip/Reinforcement-Learning-for-Active-Learning-Reborn}",
+  note         = "Accessed: 20xx-xx-xx"
+}
+
+```
