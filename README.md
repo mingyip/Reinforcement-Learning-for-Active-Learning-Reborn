@@ -97,7 +97,7 @@ Available: http://yann.lecun.com/exdb/mnist, 2, 2010.
 If you find this implementation useful and want to cite/mention this page, here is a bibtex citation:
 
 ```bibtex
-@misc{Idelbayev18a,
+@misc{cheung19,
   author       = "Ming Yip Cheung",
   title        = "Reinforcement Learning for Active Learning",
   howpublished = "\url{https://github.com/mingyip/Reinforcement-Learning-for-Active-Learning-Reborn}",
