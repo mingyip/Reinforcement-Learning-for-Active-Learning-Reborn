@@ -81,6 +81,15 @@ Reinforcement-Learning-for-Active-Learning
 We tested our algorithm in MNIST, CIFAR-10 and EMNIST dataset.
 
 ## Results
+
+<p align="center">
+  <img src="https://github.com/mingyip/Reinforcement-Learning-for-Active-Learning-Reborn/blob/master/pictures/MNIST_Results.png?raw=true" width="800px">
+</p>
+
+<p align="center">
+  <img src="https://github.com/mingyip/Reinforcement-Learning-for-Active-Learning-Reborn/blob/master/pictures/EMNIST_result.png?raw=true" width="800px">
+</p>
+
 When a experiemnt is finished, all data is stored in .csv format. you may find the data in folder *result/finish/*
 
 ## References
